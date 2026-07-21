@@ -41,9 +41,10 @@ The solution has two main parts:
 
 ## Repository Structure
 
-- `projectStarters/`: source reference PDFs for project brief and guidelines
+- `project-starters/`: source reference PDFs for project brief and guidelines
+- `docs/scope.md`: clear boundaries of what is included in MVP
+- `docs/technical-design.md`: selected architecture pattern, stack, and system design
 - `README.md`: project overview and approach
-- `Scope.md`: clear boundaries of what is included in MVP
 
 ## Success Criteria
 
