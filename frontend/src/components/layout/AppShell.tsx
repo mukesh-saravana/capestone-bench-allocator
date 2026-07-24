@@ -3,7 +3,7 @@ import { Box, useMediaQuery, useTheme } from '@mui/material';
 import { Sidebar, SIDEBAR_WIDTH } from './Sidebar';
 import { TopBar } from './TopBar';
 
-const TOPBAR_HEIGHT = 64;
+const TOPBAR_HEIGHT = 68;
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
