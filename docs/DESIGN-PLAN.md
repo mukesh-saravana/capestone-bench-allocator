@@ -484,6 +484,134 @@ This document outlines the complete UI/UX design plan for the Capstone Bench All
 
 ---
 
+### 2.6 Screen 6: Login
+
+**Purpose**: Authenticate users before granting access to the application.
+
+**Layout**:
+```
+┌──────────────────────────────────────────────────────────┐
+│                                                          │
+│              (Full page, centered content)               │
+│                                                          │
+│              [Logo 48px]                                 │
+│              Bench Allocator                             │
+│              "AI-assisted resource allocation"           │
+│                                                          │
+│         ┌──────────────────────────────────┐            │
+│         │  Email                           │            │
+│         │  [_____________________________] │            │
+│         │                                  │            │
+│         │  Password                        │            │
+│         │  [____________________________👁]│            │
+│         │                                  │            │
+│         │  [         Sign In          ]    │            │
+│         │                                  │            │
+│         │  Forgot password?                │            │
+│         └──────────────────────────────────┘            │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
+```
+
+**Components**:
+1. **Logo + App Name** — centered, 48px logo, title below
+2. **Email input** — label + standard text field, full-width within card
+3. **Password input** — masked, show/hide toggle on right
+4. **Sign In button** — Primary full-width, shows spinner when loading
+5. **Inline error** — red text below fields on invalid credentials
+6. **Forgot password link** — Ghost text, no action required in MVP (link only)
+
+**States**:
+- Default, Loading (spinner in button + disabled fields), Error (inline message), Success (redirect)
+
+**Notes**:
+- No self-registration in MVP — accounts created by admin via seed data
+- Session token stored in HTTP-only cookie
+
+---
+
+### 2.7 Screen 7: Assignment Confirmation
+
+**Purpose**: Confirm allocation details before persisting the assignment.
+
+**Layout** (modal overlaid on Recommendations or Profile):
+```
+┌────────────────────────────────────┐
+│  Confirm Allocation          [X]   │
+├────────────────────────────────────┤
+│  Assigning:                        │
+│  [Avatar] John Doe                 │
+│           Senior Engineer          │
+│                                    │
+│  To Project:                       │
+│  ◼ Alpha Commerce Platform         │
+│    Role: Frontend Lead             │
+│                                    │
+│  Start Date                        │
+│  [  2026-08-01  ] 📅               │
+│                                    │
+│  Notes (optional)                  │
+│  [________________________________]│
+├────────────────────────────────────┤
+│  [Back]          [Confirm Assign]  │
+└────────────────────────────────────┘
+```
+
+**States**:
+- Default: Employee and project pre-populated, date defaults to today
+- Loading: "Confirm Assign" shows spinner, fields disabled
+- Success: Modal closes, toast shown "✅ [Name] assigned to [Project]"
+- Error: Inline error message if call fails
+
+---
+
+### 2.8 UI States: Loading, Empty, and Error
+
+These states are required on every screen that fetches data from the backend.
+
+#### Loading States
+
+| Surface | Loading Treatment |
+|---------|------------------|
+| Metric cards | Animated shimmer skeleton in place of number |
+| Tables / candidate lists | 3–5 skeleton rows with shimmer animation |
+| Chat response | Typing indicator (3 animated dots) |
+| Action buttons | Replace label with circular spinner; disable click |
+
+#### Empty States
+
+| Screen | Trigger | Message + CTA |
+|--------|---------|---------------|
+| Dashboard | No allocations | "No allocations yet. Upload data to get started." + [Upload Data] |
+| Recommendations | No matches for query | "No matching candidates. Try adjusting filters or broadening your query." |
+| Chat | First visit / no history | "Ask a staffing question to get started." + suggested prompts |
+| Active Projects table | No open needs | "No open project needs at this time." |
+
+Empty state structure: centered gray icon (48px) + bold heading + descriptive sub-text + optional CTA button.
+
+#### Error States
+
+| Scenario | Treatment |
+|----------|-----------|
+| API 5xx error | Toast (red): "Something went wrong. Please try again." with Retry button |
+| Network offline | Persistent top banner: "⚠️ Connection lost. Some features may be unavailable." |
+| Form validation | Inline red text below each invalid field |
+| LLM timeout | Chat message: "The assistant is taking longer than expected. Please try again." |
+| Auth expired | Redirect to Login: "Your session expired. Please sign in again." |
+
+#### Toast Notifications
+
+Toasts appear top-right, auto-dismiss after 4 seconds (errors require manual dismiss):
+
+| Type | Background | Example |
+|------|------------|---------|
+| Success | #4CAF50 | "✅ John Doe assigned successfully" |
+| Error | #F44336 | "❌ Failed to load recommendations" |
+| Warning | #FF9800 | "⚠️ Low confidence match — review manually" |
+| Info | #1976D2 | "ℹ️ Recommendation data refreshed" |
+
+---
+
 ## 3. Component Library
 
 ### 3.1 Reusable Components
@@ -554,6 +682,17 @@ This document outlines the complete UI/UX design plan for the Capstone Bench All
 
 ## 5. User Flows
 
+### Flow 0: Authentication
+
+```
+1. User navigates to app → Login screen shown (if not already signed in)
+2. User enters email + password → Clicks "Sign In"
+3. Backend validates credentials → Returns JWT
+4. Token stored in HTTP-only cookie → User redirected to Dashboard
+5. If credentials invalid → Inline error shown under fields
+6. If session expires during use → Redirect to Login with "Session expired" message
+```
+
 ### Flow 1: Ask for Staffing Recommendation
 
 ```
@@ -565,9 +704,10 @@ This document outlines the complete UI/UX design plan for the Capstone Bench All
 6. Assistant responds with top 3 candidates
 7. User clicks "View Details" on #1 candidate
 8. Profile modal opens
-9. User clicks "Assign" → Confirmation dialog
-10. Allocation recorded → Notification sent
-11. Dashboard updates
+9. User clicks "Assign" → Assignment Confirmation modal opens
+10. User confirms start date → Clicks "Confirm Assign"
+11. Success toast: "✅ John Doe assigned to [Project]"
+12. Dashboard updates bench/utilization metrics
 ```
 
 ### Flow 2: Browse Recommendations
@@ -635,20 +775,22 @@ This document outlines the complete UI/UX design plan for the Capstone Bench All
 ## 9. Implementation Roadmap
 
 ### Phase 1: Core Screens (Week 1-2)
+- [ ] Login screen
 - [ ] Dashboard screen
 - [ ] Chat assistant interface
 - [ ] Recommendations list
 
 ### Phase 2: Modals & Details (Week 2-3)
 - [ ] Candidate profile modal
+- [ ] Assignment confirmation modal
 - [ ] Settings page
-- [ ] Allocation confirmation flow
 
-### Phase 3: Polish & Testing (Week 3-4)
+### Phase 3: States & Polish (Week 3-4)
+- [ ] Loading / skeleton states on all screens
+- [ ] Empty states on all data surfaces
+- [ ] Error states and toast notification system
 - [ ] Responsive design validation
 - [ ] Accessibility audit
-- [ ] User testing with stakeholders
-- [ ] Performance optimization
 
 ### Phase 4: Handoff to Dev (Week 4)
 - [ ] Component library documentation

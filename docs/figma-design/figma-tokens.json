@@ -1,0 +1,145 @@
+{
+  "meta": {
+    "project": "Capstone Bench Allocator",
+    "version": "1.0.0",
+    "notes": "Import into Figma Variables or token plugin."
+  },
+  "color": {
+    "primary": { "value": "#1976D2" },
+    "secondary": { "value": "#DC004E" },
+    "success": { "value": "#4CAF50" },
+    "warning": { "value": "#FF9800" },
+    "danger": { "value": "#F44336" },
+    "surface": {
+      "base": { "value": "#FAFAFA" },
+      "card": { "value": "#FFFFFF" },
+      "panel": { "value": "#F5F5F5" },
+      "subtle": { "value": "#ECEFF1" }
+    },
+    "text": {
+      "primary": { "value": "#212121" },
+      "secondary": { "value": "#424242" },
+      "tertiary": { "value": "#757575" },
+      "onPrimary": { "value": "#FFFFFF" }
+    },
+    "border": {
+      "default": { "value": "#E0E0E0" },
+      "muted": { "value": "#ECEFF1" }
+    },
+    "status": {
+      "allocated": { "value": "#2E7D32" },
+      "pending": { "value": "#ED6C02" },
+      "critical": { "value": "#D32F2F" }
+    }
+  },
+  "typography": {
+    "fontFamily": {
+      "display": { "value": "Segoe UI" },
+      "body": { "value": "Segoe UI" }
+    },
+    "heading": {
+      "h1": {
+        "fontFamily": "{typography.fontFamily.display.value}",
+        "fontWeight": 700,
+        "fontSize": 32,
+        "lineHeight": 40,
+        "letterSpacing": 0
+      },
+      "h2": {
+        "fontFamily": "{typography.fontFamily.display.value}",
+        "fontWeight": 600,
+        "fontSize": 24,
+        "lineHeight": 32,
+        "letterSpacing": 0
+      },
+      "h3": {
+        "fontFamily": "{typography.fontFamily.display.value}",
+        "fontWeight": 600,
+        "fontSize": 18,
+        "lineHeight": 26,
+        "letterSpacing": 0
+      }
+    },
+    "body": {
+      "md": {
+        "fontFamily": "{typography.fontFamily.body.value}",
+        "fontWeight": 400,
+        "fontSize": 14,
+        "lineHeight": 20,
+        "letterSpacing": 0
+      },
+      "sm": {
+        "fontFamily": "{typography.fontFamily.body.value}",
+        "fontWeight": 400,
+        "fontSize": 12,
+        "lineHeight": 18,
+        "letterSpacing": 0
+      }
+    },
+    "button": {
+      "md": {
+        "fontFamily": "{typography.fontFamily.body.value}",
+        "fontWeight": 600,
+        "fontSize": 14,
+        "lineHeight": 16,
+        "letterSpacing": 0
+      }
+    }
+  },
+  "spacing": {
+    "0": { "value": 0 },
+    "1": { "value": 4 },
+    "2": { "value": 8 },
+    "3": { "value": 12 },
+    "4": { "value": 16 },
+    "6": { "value": 24 },
+    "8": { "value": 32 },
+    "12": { "value": 48 }
+  },
+  "radius": {
+    "sm": { "value": 4 },
+    "md": { "value": 8 },
+    "pill": { "value": 999 }
+  },
+  "effect": {
+    "shadow": {
+      "hover": {
+        "value": {
+          "x": 0,
+          "y": 2,
+          "blur": 8,
+          "spread": 0,
+          "color": "rgba(0,0,0,0.10)"
+        }
+      },
+      "raised": {
+        "value": {
+          "x": 0,
+          "y": 4,
+          "blur": 12,
+          "spread": 0,
+          "color": "rgba(0,0,0,0.15)"
+        }
+      },
+      "modal": {
+        "value": {
+          "x": 0,
+          "y": 8,
+          "blur": 24,
+          "spread": 0,
+          "color": "rgba(0,0,0,0.20)"
+        }
+      }
+    }
+  },
+  "motion": {
+    "duration": {
+      "fast": { "value": 150 },
+      "base": { "value": 200 },
+      "slow": { "value": 300 }
+    },
+    "easing": {
+      "standard": { "value": "cubic-bezier(0.2, 0, 0, 1)" }
+    }
+  }
+}

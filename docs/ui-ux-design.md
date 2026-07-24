@@ -213,6 +213,132 @@
 
 ---
 
+## Screen 6: Login
+
+### Layout: Centered Card (480px wide, vertically centered)
+
+```
+┌──────────────────────────────────────┐
+│  [Logo]                              │
+│  Bench Allocator                     │
+│  "AI-assisted resource allocation"   │
+│                                      │
+│  Email                               │
+│  [___________________________]       │
+│                                      │
+│  Password                            │
+│  [___________________________] 👁     │
+│                                      │
+│  [       Sign In       ]             │
+│                                      │
+│  ─────── or ───────────             │
+│                                      │
+│  Forgot password?                    │
+└──────────────────────────────────────┘
+```
+
+### Components
+- **Logo + App Name** (center-aligned, 48px logo)
+- **Email field**: standard text input with label
+- **Password field**: masked input with show/hide toggle
+- **Sign In button**: Primary full-width button
+- **Error inline message**: Red text below field on invalid credentials
+- **Forgot password link**: Ghost text link
+
+### States
+- **Default**: Empty fields, Sign In enabled
+- **Loading**: Button shows spinner, fields disabled
+- **Error**: "Invalid email or password" shown inline in red
+- **Success**: Redirect to Dashboard (no visible state)
+
+### Notes
+- No self-registration in MVP — accounts are created by admin
+- Session token stored in HTTP-only cookie (not localStorage)
+- Auto-redirect to Dashboard if already authenticated
+
+---
+
+## Screen 7: Assignment Confirmation
+
+### Layout: Modal (600px wide)
+
+```
+┌──────────────────────────────────────┐
+│  Confirm Allocation          [X]     │
+├──────────────────────────────────────┤
+│                                      │
+│  Assigning:                          │
+│  [Avatar] John Doe                   │
+│           Senior Engineer            │
+│                                      │
+│  To Project:                         │
+│  ◼ Alpha Commerce Platform           │
+│    Role: Frontend Lead               │
+│                                      │
+│  Start Date                          │
+│  [  2026-08-01  ] 📅                 │
+│                                      │
+│  Notes (optional)                    │
+│  [___________________________]       │
+│                                      │
+├──────────────────────────────────────┤
+│  [Back]              [Confirm Assign]│
+└──────────────────────────────────────┘
+```
+
+### States
+- **Default**: Employee and project pre-populated from context, date defaults to today
+- **Loading**: "Confirm Assign" button shows spinner
+- **Success**: Modal closes, toast notification shown: "✅ John Doe assigned to Alpha Commerce Platform"
+- **Error**: Inline error message if assignment fails
+
+---
+
+## UI States — Error, Loading, and Empty
+
+These states apply across all screens and must be implemented for every data-fetching surface.
+
+### Loading States
+- **Metric cards**: Show skeleton shimmer (gray animated rectangle in place of number)
+- **Tables and lists**: 3–5 skeleton rows with shimmer
+- **Chat response**: Typing indicator (three animated dots) while assistant responds
+- **Buttons**: Replace button label with a circular spinner; disable the button
+
+### Empty States
+Each screen has a defined empty state shown when no data is available:
+
+| Screen | Condition | Empty State Message |
+|--------|-----------|---------------------|
+| Dashboard | No allocation history | "No allocations yet. Upload data to get started." + [Upload Data] button |
+| Recommendations | No candidates match query | "No matching candidates found. Try adjusting filters or broadening your query." |
+| Chat | No prior messages | "Ask a staffing question to get started." + suggested prompts |
+| Active Projects table | No open needs | "No open project needs at this time." |
+
+Empty state visual structure:
+- Centered icon (48px, neutral gray)
+- Short heading (16px, bold)
+- Descriptive sub-text (14px, gray)
+- Optional call-to-action button
+
+### Error States
+- **API error (5xx)**: Toast notification: "Something went wrong. Please try again." with Retry button
+- **Network offline**: Persistent top banner: "⚠️ Connection lost. Some features may be unavailable."
+- **Validation errors (forms)**: Inline red text below each invalid field
+- **No LLM response / timeout**: Chat shows: "The assistant is taking longer than expected. Please try again."
+- **Auth expired**: Redirect to Login with message: "Your session expired. Please sign in again."
+
+### Toast / Notification System
+Toasts appear top-right, auto-dismiss after 4 seconds (errors stay until dismissed):
+
+| Type | Color | Icon | Example |
+|------|-------|------|---------|
+| Success | #4CAF50 | ✅ | "John Doe assigned successfully" |
+| Error | #F44336 | ❌ | "Failed to load recommendations" |
+| Warning | #FF9800 | ⚠️ | "Low confidence match — review manually" |
+| Info | #1976D2 | ℹ️ | "Recommendation data refreshed" |
+
+---
+
 ## Component Library
 
 ### Reusable Components
@@ -264,14 +390,16 @@
 
 ## User Flow - Staffing Request
 
-1. User clicks "Chat Assistant" nav item → Chat Screen opens
-2. User types: "Find a React developer available next month"
-3. Chat submits → Backend retrieves relevant employee/project data
-4. Assistant returns: Top 3 recommendations with scores
-5. User clicks "View Details" → Candidate Profile Modal opens
-6. User reviews profile + project history
-7. User clicks "Assign" → Confirmation dialog
-8. Allocation recorded → Dashboard updates
+1. User navigates to app → Login screen if not authenticated
+2. User signs in → Redirect to Dashboard
+3. User clicks "Chat Assistant" nav item → Chat Screen opens
+4. User types: "Find a React developer available next month"
+5. Chat submits → Backend retrieves relevant employee/project data
+6. Assistant returns: Top 3 recommendations with scores
+7. User clicks "View Details" → Candidate Profile Modal opens
+8. User reviews profile + project history
+9. User clicks "Assign" → Assignment Confirmation Modal opens
+10. User confirms start date → Allocation recorded → Dashboard updates + success toast shown
 
 ---
 
