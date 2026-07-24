@@ -44,7 +44,10 @@ The solution has two main parts:
 - `project-starters/`: source reference PDFs for project brief and guidelines
 - `docs/scope.md`: clear boundaries of what is included in MVP
 - `docs/technical-design.md`: selected architecture pattern, stack, and system design
-- `README.md`: project overview and approach
+- `docs/DESIGN-PLAN.md`: detailed UI/UX plan and implementation roadmap
+- `frontend/`: React + Vite + TypeScript application (implemented MVP UI)
+- `frontend/flow.md`: non-technical end-to-end frontend usage and behavior guide
+- `README.md`: project overview and progress
 
 ## Success Criteria
 
@@ -69,5 +72,22 @@ The solution has two main parts:
 
 ## Current Status
 
-This repository currently contains project starter documents and planning artifacts.
-Application code can be added next in separate folders such as `data/`, `backend/`, `rag/`, and `dashboard/`.
+The project has moved from planning into active implementation.
+
+### Completed
+
+- Frontend MVP implemented in `frontend/` using React + Vite + TypeScript + MUI
+- Protected login flow and route-based app shell
+- Screens delivered: Login, Dashboard, Chat Assistant, Recommendations, Settings
+- Candidate Profile and Assignment Confirmation modals
+- Loading, empty, and toast feedback states
+- Modernized UI pass: dark-gradient sidebar, glass-style topbar, modern cards, smooth transitions
+- Global motion system with page-level transitions and reduced-motion support
+
+### In Progress / Next
+
+- Backend API integration for auth, dashboard metrics, recommendations, and assignments
+- RAG service hookup for live chat/recommendation responses
+- Persisted data and settings workflows
+
+For a non-technical walkthrough, see: **`frontend/flow.md`**
