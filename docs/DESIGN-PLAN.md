@@ -1,7 +1,7 @@
 # Design Plan - Capstone Bench Allocator MVP
 
-**Status**: Design Phase  
-**Last Updated**: 2026-07-22  
+**Status**: Frontend MVP Implemented (Modern UI Phase Complete)  
+**Last Updated**: 2026-07-24  
 **Owner**: Design Team
 
 ---
@@ -775,27 +775,27 @@ Toasts appear top-right, auto-dismiss after 4 seconds (errors require manual dis
 ## 9. Implementation Roadmap
 
 ### Phase 1: Core Screens (Week 1-2)
-- [ ] Login screen
-- [ ] Dashboard screen
-- [ ] Chat assistant interface
-- [ ] Recommendations list
+- [x] Login screen
+- [x] Dashboard screen
+- [x] Chat assistant interface
+- [x] Recommendations list
 
 ### Phase 2: Modals & Details (Week 2-3)
-- [ ] Candidate profile modal
-- [ ] Assignment confirmation modal
-- [ ] Settings page
+- [x] Candidate profile modal
+- [x] Assignment confirmation modal
+- [x] Settings page
 
 ### Phase 3: States & Polish (Week 3-4)
-- [ ] Loading / skeleton states on all screens
-- [ ] Empty states on all data surfaces
-- [ ] Error states and toast notification system
-- [ ] Responsive design validation
-- [ ] Accessibility audit
+- [x] Loading / skeleton states on all screens
+- [x] Empty states on all data surfaces
+- [x] Error states and toast notification system
+- [x] Responsive design validation (MVP level)
+- [x] Accessibility baseline (contrast, reduced motion support)
 
 ### Phase 4: Handoff to Dev (Week 4)
-- [ ] Component library documentation
-- [ ] Design tokens export
-- [ ] Figma specs for developers
+- [x] Component library documentation (code-level components in frontend)
+- [x] Design tokens export (implemented in `frontend/src/theme.ts`)
+- [x] Figma specs for developers (captured in docs and translated to implementation)
 
 ---
 

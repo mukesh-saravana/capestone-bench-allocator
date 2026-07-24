@@ -1,32 +1,65 @@
-# React + TypeScript + Vite
+# Capstone Bench Allocator Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+This is the React frontend for the Capstone Bench Allocator MVP.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React + TypeScript + Vite
+- Material UI (MUI)
+- React Router
+- TanStack Query
+- React Hook Form
+- Recharts
 
-## React Compiler
+## Run locally
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Build for production:
+
+```bash
+npm run build
+```
+
+Preview production build:
+
+```bash
+npm run preview
+```
+
+## Implemented pages
+
+- `/login`
+- `/dashboard`
+- `/chat`
+- `/recommendations`
+- `/settings`
+
+## Key UX capabilities implemented
+
+- Protected route flow with login redirect
+- Modernized visual design system (colors, gradients, typography, shadows)
+- Sidebar and topbar shell for all authenticated screens
+- Dashboard metrics and staffing overview panels
+- Chat assistant surface with suggested prompts
+- Recommendation ranking cards, profile modal, assignment modal
+- Settings tabs for preferences and data management UI
+- Loading/empty/error feedback patterns and toast notifications
+- Global smooth page and component transitions
+
+## Important note
+
+Current MVP uses mock/demo data and mock auth flow.  
+API integration points are already structured for backend hookup.
+
+## Full non-technical walkthrough
+
+See **`frontend/flow.md`** for a complete end-to-end explanation of:
+
+- how screens connect
+- what users do on each screen
+- what outcomes to expect
+- what is demo behavior vs next integration phase
