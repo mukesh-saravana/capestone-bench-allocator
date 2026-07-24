@@ -1,0 +1,218 @@
+{
+  "project": {
+    "name": "Capstone Bench Allocator",
+    "tagline": "Allocate talent faster with explainable AI recommendations"
+  },
+  "dashboard": {
+    "kpis": [
+      {
+        "title": "Bench Status",
+        "value": "24",
+        "subtitle": "Engineers currently unallocated",
+        "trend": "+3 vs last week",
+        "tone": "success"
+      },
+      {
+        "title": "Average Utilization",
+        "value": "78%",
+        "subtitle": "Across engineering org",
+        "trend": "-2% vs target",
+        "tone": "warning"
+      },
+      {
+        "title": "Open Roles",
+        "value": "11",
+        "subtitle": "Across active projects",
+        "trend": "+4 this sprint",
+        "tone": "neutral"
+      },
+      {
+        "title": "Allocation Velocity",
+        "value": "9/week",
+        "subtitle": "Successful placements",
+        "trend": "+1.5 week over week",
+        "tone": "success"
+      }
+    ],
+    "activeProjects": [
+      {
+        "project": "Atlas Commerce Revamp",
+        "skills": ["React", "TypeScript", "GraphQL"],
+        "priority": "High",
+        "openSlots": 3
+      },
+      {
+        "project": "Orion Data Platform",
+        "skills": ["Python", "Airflow", "SQL"],
+        "priority": "High",
+        "openSlots": 2
+      },
+      {
+        "project": "Nimbus Mobile Experience",
+        "skills": ["Flutter", "Firebase", "REST"],
+        "priority": "Medium",
+        "openSlots": 2
+      },
+      {
+        "project": "Helios Observability",
+        "skills": ["Kubernetes", "Prometheus", "Go"],
+        "priority": "Medium",
+        "openSlots": 1
+      },
+      {
+        "project": "Lumen Integrations",
+        "skills": ["Node.js", "AWS", "Terraform"],
+        "priority": "Low",
+        "openSlots": 3
+      }
+    ],
+    "recentAllocations": [
+      {
+        "employee": "Aarav Menon",
+        "project": "Atlas Commerce Revamp",
+        "date": "2026-07-19",
+        "status": "Allocated"
+      },
+      {
+        "employee": "Meera Iyer",
+        "project": "Orion Data Platform",
+        "date": "2026-07-18",
+        "status": "Allocated"
+      },
+      {
+        "employee": "Rohan Patel",
+        "project": "Lumen Integrations",
+        "date": "2026-07-18",
+        "status": "Pending"
+      },
+      {
+        "employee": "Sana Qureshi",
+        "project": "Nimbus Mobile Experience",
+        "date": "2026-07-17",
+        "status": "Allocated"
+      },
+      {
+        "employee": "Ishan Verma",
+        "project": "Helios Observability",
+        "date": "2026-07-16",
+        "status": "Pending"
+      },
+      {
+        "employee": "Diya Nair",
+        "project": "Atlas Commerce Revamp",
+        "date": "2026-07-15",
+        "status": "Allocated"
+      }
+    ]
+  },
+  "chat": {
+    "promptChips": [
+      "Who is available on the bench for frontend work?",
+      "Best match for a Django project starting in August?",
+      "Show engineers under 60% utilization"
+    ],
+    "messages": [
+      {
+        "speaker": "user",
+        "text": "Find a React developer available next month for Atlas Commerce Revamp."
+      },
+      {
+        "speaker": "assistant",
+        "text": "I found 6 available engineers with React skills. Top match is Aarav Menon (9.2/10) based on React proficiency, similar domain experience, and 42% current utilization."
+      },
+      {
+        "speaker": "assistant",
+        "text": "Would you like to review top 3 recommendations with reasoning and availability windows?"
+      }
+    ],
+    "retrievedContext": [
+      "React-skilled bench engineers: 6",
+      "Atlas requires TypeScript + GraphQL by 2026-08-05",
+      "Recent similar placements: 4 in last 30 days",
+      "Preferred experience: ecommerce and high traffic UI"
+    ]
+  },
+  "recommendations": [
+    {
+      "rank": 1,
+      "name": "Aarav Menon",
+      "role": "Senior Frontend Engineer",
+      "team": "Experience Engineering",
+      "skills": ["React", "TypeScript", "GraphQL", "AWS"],
+      "score": 9.2,
+      "availability": "Available from 2026-08-01",
+      "rationale": "Skill match 6.0, domain experience 2.1, utilization fit 1.1"
+    },
+    {
+      "rank": 2,
+      "name": "Meera Iyer",
+      "role": "Frontend Engineer",
+      "team": "Digital Products",
+      "skills": ["React", "Next.js", "TypeScript"],
+      "score": 8.7,
+      "availability": "Available from 2026-08-10",
+      "rationale": "Skill match 5.7, domain experience 2.0, utilization fit 1.0"
+    },
+    {
+      "rank": 3,
+      "name": "Sana Qureshi",
+      "role": "Software Engineer",
+      "team": "Commerce Platform",
+      "skills": ["React", "Redux", "Node.js"],
+      "score": 8.1,
+      "availability": "Available from 2026-08-03",
+      "rationale": "Skill match 5.2, domain experience 1.8, utilization fit 1.1"
+    }
+  ],
+  "candidateProfile": {
+    "name": "Aarav Menon",
+    "role": "Senior Frontend Engineer",
+    "department": "Experience Engineering",
+    "utilization": "42%",
+    "lastAllocated": "2 weeks ago",
+    "avgProjectDuration": "5.8 months",
+    "skills": [
+      { "name": "React", "proficiency": 5 },
+      { "name": "TypeScript", "proficiency": 5 },
+      { "name": "GraphQL", "proficiency": 4 },
+      { "name": "Node.js", "proficiency": 4 },
+      { "name": "AWS", "proficiency": 4 },
+      { "name": "Jest", "proficiency": 4 },
+      { "name": "Cypress", "proficiency": 3 }
+    ],
+    "projectHistory": [
+      "2026 Q1 - Cart Optimization Program",
+      "2025 Q4 - Checkout UX Overhaul",
+      "2025 Q3 - Merchant Self-Service Portal"
+    ],
+    "reasoning": [
+      "Strong match on required frontend stack",
+      "Recent ecommerce domain experience",
+      "Available before target project start",
+      "Healthy utilization balance for fast ramp-up"
+    ]
+  },
+  "settings": {
+    "general": [
+      "Default Landing: Dashboard",
+      "Theme: Light",
+      "Recommendation Strategy: Hybrid",
+      "Show confidence scores: Enabled"
+    ],
+    "skillTags": [
+      "React",
+      "TypeScript",
+      "Python",
+      "Django",
+      "AWS",
+      "Kubernetes",
+      "SQL",
+      "Terraform"
+    ],
+    "notifications": [
+      "Alert when bench count exceeds threshold",
+      "Daily utilization summary at 6:00 PM",
+      "Notify on high-priority role unmatched for 48h"
+    ]
+  }
+}
