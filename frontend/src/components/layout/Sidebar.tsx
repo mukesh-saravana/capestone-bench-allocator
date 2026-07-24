@@ -28,8 +28,21 @@ function SidebarContent() {
   return (
     <Box sx={{ height: '100%', background: tokens.gradients.sidebar, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Brand */}
-      <Box sx={{ px: 3, py: 3.5 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 0.5 }}>
+      <Box
+        sx={{
+          px: 3,
+          pt: 3,
+          pb: 2,
+          '&::after': {
+            content: '""',
+            display: 'block',
+            height: 1,
+            bgcolor: 'rgba(255,255,255,0.08)',
+            mt: 1,
+          },
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <Box sx={{
             width: 36, height: 36, borderRadius: 2,
             background: tokens.gradients.primary,
@@ -49,11 +62,19 @@ function SidebarContent() {
         </Box>
       </Box>
 
-      {/* Divider */}
-      <Box sx={{ mx: 3, height: 1, bgcolor: 'rgba(255,255,255,0.08)', mb: 1.5 }} />
-
       {/* Nav label */}
-      <Typography sx={{ px: 3, pb: 1, fontSize: '0.65rem', fontWeight: 700, color: 'rgba(148,163,184,0.6)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+      <Typography
+        sx={{
+          px: 3,
+          pb: 1,
+          fontSize: '0.65rem',
+          fontWeight: 700,
+          color: 'rgba(148,163,184,0.8)',
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+          bgcolor: 'transparent',
+        }}
+      >
         Navigation
       </Typography>
 
@@ -68,20 +89,42 @@ function SidebarContent() {
                 mb: 0.5, borderRadius: 1.5, px: 1.5, py: 1.25,
                 background: isActive ? 'linear-gradient(135deg, rgba(67,97,238,0.35) 0%, rgba(67,97,238,0.15) 100%)' : 'transparent',
                 border: isActive ? '1px solid rgba(67,97,238,0.3)' : '1px solid transparent',
-                color: isActive ? '#FFFFFF' : tokens.colors.sidebarText,
-                transition: 'all 180ms ease',
+                color: isActive ? '#FFFFFF' : 'rgba(226,232,240,0.92)',
+                boxShadow: isActive ? '0 10px 24px rgba(67,97,238,0.24)' : 'none',
+                transform: 'translateX(0)',
+                transition: 'background 260ms cubic-bezier(0.22, 1, 0.36, 1), border-color 260ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 260ms cubic-bezier(0.22, 1, 0.36, 1), transform 260ms cubic-bezier(0.22, 1, 0.36, 1), color 220ms ease',
                 '&:hover': {
                   background: isActive
                     ? 'linear-gradient(135deg, rgba(67,97,238,0.4) 0%, rgba(67,97,238,0.2) 100%)'
                     : 'rgba(255,255,255,0.05)',
+                  borderColor: isActive ? 'rgba(99,120,255,0.5)' : 'rgba(255,255,255,0.12)',
+                  boxShadow: isActive ? '0 12px 26px rgba(67,97,238,0.3)' : '0 8px 18px rgba(15,23,42,0.35)',
+                  transform: 'translateX(4px)',
                   color: '#FFFFFF',
                 },
               }}
             >
-              <ListItemIcon sx={{ minWidth: 36, color: isActive ? tokens.colors.primaryLight : 'inherit' }}>{icon}</ListItemIcon>
+              <ListItemIcon
+                sx={{
+                  minWidth: 36,
+                  color: isActive ? '#FFFFFF' : 'rgba(226,232,240,0.92)',
+                  transition: 'color 220ms ease, transform 260ms cubic-bezier(0.22, 1, 0.36, 1)',
+                  transform: isActive ? 'scale(1.06)' : 'scale(1)',
+                }}
+              >
+                {icon}
+              </ListItemIcon>
               <ListItemText
                 primary={label}
-                sx={{ '& .MuiListItemText-primary': { fontSize: '0.875rem', fontWeight: isActive ? 600 : 400 } }}
+                sx={{
+                  '& .MuiListItemText-primary': {
+                    fontSize: '0.875rem',
+                    fontWeight: isActive ? 700 : 500,
+                    color: isActive ? '#FFFFFF' : 'rgba(226,232,240,0.92)',
+                    transition: 'color 220ms ease, letter-spacing 220ms ease',
+                    letterSpacing: isActive ? '0.01em' : '0',
+                  },
+                }}
               />
               {badge && (
                 <Chip label={badge} size="small"
@@ -115,7 +158,18 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         variant="temporary"
         open={mobileOpen}
         onClose={onMobileClose}
-        sx={{ '& .MuiDrawer-paper': { width: SIDEBAR_WIDTH, boxSizing: 'border-box', border: 'none' } }}
+        sx={{
+          '& .MuiDrawer-paper': {
+            width: SIDEBAR_WIDTH,
+            boxSizing: 'border-box',
+            border: 'none',
+            borderTopLeftRadius: 0,
+            borderBottomLeftRadius: 0,
+            borderTopRightRadius: 16,
+            borderBottomRightRadius: 16,
+            overflow: 'hidden',
+          },
+        }}
       >
         <SidebarContent />
       </Drawer>
@@ -127,7 +181,17 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
       variant="permanent"
       sx={{
         width: SIDEBAR_WIDTH, flexShrink: 0,
-        '& .MuiDrawer-paper': { width: SIDEBAR_WIDTH, boxSizing: 'border-box', border: 'none', boxShadow: '4px 0 24px rgba(0,0,0,0.08)' },
+        '& .MuiDrawer-paper': {
+          width: SIDEBAR_WIDTH,
+          boxSizing: 'border-box',
+          border: 'none',
+          borderTopLeftRadius: 0,
+          borderBottomLeftRadius: 0,
+          borderTopRightRadius: 16,
+          borderBottomRightRadius: 16,
+          overflow: 'hidden',
+          boxShadow: '6px 0 28px rgba(0,0,0,0.14)',
+        },
       }}
     >
       <SidebarContent />

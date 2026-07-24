@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Box, useMediaQuery, useTheme } from '@mui/material';
+import { useLocation } from 'react-router-dom';
 import { Sidebar, SIDEBAR_WIDTH } from './Sidebar';
 import { TopBar } from './TopBar';
 
@@ -8,6 +9,7 @@ const TOPBAR_HEIGHT = 68;
 export function AppShell({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const theme = useTheme();
+  const { pathname } = useLocation();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   return (
@@ -23,7 +25,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         }}
       >
         <TopBar onMenuClick={() => setMobileOpen(true)} />
-        <Box sx={{ p: 3 }}>{children}</Box>
+      <Box key={pathname} className="page-transition" sx={{ p: 3 }}>
+        {children}
+      </Box>
       </Box>
     </Box>
   );

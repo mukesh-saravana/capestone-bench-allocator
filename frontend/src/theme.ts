@@ -46,6 +46,17 @@ const tokens = {
     lg: 16,
     xl: 24,
   },
+  motion: {
+    duration: {
+      fast: '180ms',
+      normal: '280ms',
+      slow: '420ms',
+    },
+    easing: {
+      standard: 'cubic-bezier(0.22, 1, 0.36, 1)',
+      smooth: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+    },
+  },
 };
 
 export { tokens };
@@ -77,6 +88,22 @@ const theme = createTheme({
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         * { box-sizing: border-box; }
         body { background: ${tokens.colors.background}; }
+        @keyframes pageEnter {
+          from { opacity: 0; transform: translateY(14px) scale(0.992); filter: blur(4px); }
+          to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+        }
+        .page-transition {
+          animation: pageEnter ${tokens.motion.duration.slow} ${tokens.motion.easing.standard} both;
+          will-change: transform, opacity, filter;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+            scroll-behavior: auto !important;
+          }
+        }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: ${tokens.colors.border}; border-radius: 3px; }
@@ -90,7 +117,7 @@ const theme = createTheme({
           padding: '8px 18px',
           fontWeight: 600,
           boxShadow: 'none',
-          transition: 'all 180ms ease',
+          transition: `transform ${tokens.motion.duration.fast} ${tokens.motion.easing.smooth}, box-shadow ${tokens.motion.duration.fast} ${tokens.motion.easing.smooth}, background ${tokens.motion.duration.normal} ${tokens.motion.easing.standard}`,
           '&:hover': { boxShadow: 'none', transform: 'translateY(-1px)' },
           '&:active': { transform: 'translateY(0)' },
         },
@@ -106,8 +133,8 @@ const theme = createTheme({
           border: `1px solid ${tokens.colors.border}`,
           borderRadius: tokens.borderRadius.md,
           boxShadow: tokens.shadows.xs,
-          transition: 'all 220ms ease',
-          '&:hover': { boxShadow: tokens.shadows.md, transform: 'translateY(-2px)' },
+          transition: `transform ${tokens.motion.duration.normal} ${tokens.motion.easing.standard}, box-shadow ${tokens.motion.duration.normal} ${tokens.motion.easing.standard}, border-color ${tokens.motion.duration.normal} ${tokens.motion.easing.standard}`,
+          '&:hover': { boxShadow: tokens.shadows.md, transform: 'translateY(-3px)', borderColor: '#D8E0F0' },
         },
       },
     },
@@ -118,6 +145,7 @@ const theme = createTheme({
           border: `1px solid ${tokens.colors.border}`,
           borderRadius: tokens.borderRadius.md,
           boxShadow: tokens.shadows.xs,
+          transition: `box-shadow ${tokens.motion.duration.normal} ${tokens.motion.easing.standard}, transform ${tokens.motion.duration.normal} ${tokens.motion.easing.standard}`,
         },
       },
     },
@@ -132,9 +160,39 @@ const theme = createTheme({
         root: {
           '& .MuiOutlinedInput-root': {
             borderRadius: tokens.borderRadius.sm,
-            transition: 'box-shadow 180ms ease',
+            transition: `box-shadow ${tokens.motion.duration.fast} ${tokens.motion.easing.smooth}, border-color ${tokens.motion.duration.fast} ${tokens.motion.easing.smooth}`,
             '&.Mui-focused': { boxShadow: tokens.shadows.glow(tokens.colors.primary) },
           },
+        },
+      },
+    },
+    MuiListItemButton: {
+      styleOverrides: {
+        root: {
+          transition: `background ${tokens.motion.duration.normal} ${tokens.motion.easing.standard}, transform ${tokens.motion.duration.normal} ${tokens.motion.easing.standard}, box-shadow ${tokens.motion.duration.normal} ${tokens.motion.easing.standard}`,
+          '&:hover': {
+            transform: 'translateX(2px)',
+          },
+        },
+      },
+    },
+    MuiIconButton: {
+      styleOverrides: {
+        root: {
+          transition: `transform ${tokens.motion.duration.fast} ${tokens.motion.easing.smooth}, background-color ${tokens.motion.duration.fast} ${tokens.motion.easing.smooth}, color ${tokens.motion.duration.fast} ${tokens.motion.easing.smooth}`,
+          '&:hover': {
+            transform: 'translateY(-1px) scale(1.02)',
+          },
+          '&:active': {
+            transform: 'translateY(0) scale(1)',
+          },
+        },
+      },
+    },
+    MuiTab: {
+      styleOverrides: {
+        root: {
+          transition: `color ${tokens.motion.duration.fast} ${tokens.motion.easing.smooth}, background-color ${tokens.motion.duration.normal} ${tokens.motion.easing.standard}`,
         },
       },
     },
