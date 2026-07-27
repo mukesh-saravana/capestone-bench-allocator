@@ -1,0 +1,51 @@
+# Settings Functionality Status
+
+Last updated: 2026-07-27
+
+## What is working
+
+### General tab
+- Theme, default view, and tooltip toggles are interactive.
+- **Save Settings** stores values in browser `localStorage`.
+- **Reset to Default** resets values and clears saved local settings.
+
+### Data Management tab
+- Dataset summary is fetched from backend (`GET /api/data/summary`).
+- Candidate dataset import supports:
+  - `.csv`
+  - `.xlsx`
+- Candidate import API is wired (`POST /api/import/candidates`).
+- Candidate export API is wired (`GET /api/export/candidates`).
+- Refresh summary button works and refetches server data.
+- Success/error toasts are shown for import/export actions.
+
+### Notifications tab
+- Toggle controls and frequency selector are interactive.
+- **Save Notifications** stores values in browser `localStorage`.
+
+## What is not working yet / not implemented
+
+### General tab
+- Saved general settings are not yet applied globally to app theme/navigation behavior.
+- Settings are not persisted in backend DB (local browser only).
+
+### Skill Tags tab
+- Add/Edit/Delete actions are currently placeholders.
+- No backend APIs exist yet for skill tag CRUD.
+
+### Data Management tab
+- Import is currently enabled only for **Candidate Profiles + Interview Scores** dataset.
+- Employee/Projects/Allocations uploads are not wired yet.
+- Data validation reports are basic (row-level error only, no downloadable error report).
+
+### Notifications tab
+- Notification preferences are not connected to backend notification delivery.
+- No email scheduler/queue integration exists yet.
+
+## Recommended next steps
+
+1. Add backend endpoints for Skill Tags CRUD.
+2. Add backend persistence for General/Notification settings per user.
+3. Add upload handlers for employee/projects/allocations datasets.
+4. Add richer import validation report (invalid rows file + reason per row).
+5. Apply saved settings dynamically in frontend (theme/default landing route/tooltips).

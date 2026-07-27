@@ -6,6 +6,8 @@ import type {
   BenchMetrics,
   ChatQueryRequest,
   ChatQueryResponse,
+  CandidateImportResult,
+  DataSetSummary,
   Employee,
   LoginResponse,
   ProjectNeed,
@@ -72,4 +74,23 @@ export async function getRecommendations(payload: RecommendationRequest): Promis
 export async function createAllocation(payload: AssignRequest): Promise<AllocationHistory> {
   const { data } = await apiClient.post<AllocationHistory>('/api/allocations', payload);
   return data;
+}
+
+export async function getDataSummary(): Promise<DataSetSummary[]> {
+  const { data } = await apiClient.get<DataSetSummary[]>('/api/data/summary');
+  return data;
+}
+
+export async function importCandidates(file: File): Promise<CandidateImportResult> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const { data } = await apiClient.post<CandidateImportResult>('/api/import/candidates', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return data;
+}
+
+export async function exportCandidates(): Promise<Blob> {
+  const response = await apiClient.get('/api/export/candidates', { responseType: 'blob' });
+  return response.data as Blob;
 }

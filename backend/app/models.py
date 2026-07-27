@@ -35,6 +35,8 @@ class Employee(BaseModel):
     availability: AvailabilityStatus
     utilizationPct: int = Field(ge=0, le=100)
     benchSince: date | None = None
+    interviewScore: int | None = Field(default=None, ge=0, le=100)
+    interviewResult: str | None = None
     skills: list[EmployeeSkill]
     avatar: str | None = None
 
@@ -183,3 +185,19 @@ class AllocationsSummary(BaseModel):
     activeAllocations: int
     completedAllocations: int
     recent: list[AllocationHistory]
+
+
+class DataSetSummary(BaseModel):
+    key: str
+    label: str
+    rows: int
+    lastUpdated: str
+    importEnabled: bool = False
+
+
+class CandidateImportResult(BaseModel):
+    imported: int
+    updated: int
+    skipped: int
+    sourceFile: str
+    dataset: str = "candidate_profiles"

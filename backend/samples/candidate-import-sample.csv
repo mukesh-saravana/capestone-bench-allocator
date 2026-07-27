@@ -1,0 +1,6 @@
+candidate_id,name,email,role,department,experience_years,skills,availability,utilization_pct,interview_score,interview_result
+cand-201,Arun Kumar,arun.kumar@company.com,Senior Engineer,Backend,7,Python|FastAPI|PostgreSQL,available,0,88,selected
+cand-202,Meera Iyer,meera.iyer@company.com,Engineer,Frontend,4,React|TypeScript|MUI,available,10,82,selected
+cand-203,Rahul Menon,rahul.menon@company.com,DevOps Engineer,Platform,6,Docker|Kubernetes|AWS,available,20,79,on_hold
+cand-204,Divya Sharma,divya.sharma@company.com,QA Engineer,Platform,5,Selenium|Cypress|Playwright,available,0,85,selected
+cand-205,Neha Gupta,neha.gupta@company.com,Data Engineer,Data,3,Python|Spark|PostgreSQL,allocated,75,74,rejected

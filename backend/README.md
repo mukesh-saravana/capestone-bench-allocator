@@ -24,6 +24,17 @@ It uses:
 
 ---
 
+## Candidate import samples
+
+Sample files are available in:
+
+- `backend/samples/candidate-import-sample.csv`
+- `backend/samples/candidate-import-sample.xlsx`
+
+Use these files directly from the Settings → Data Management page.
+
+---
+
 ## 2) Tools to install
 
 Install these before setup:

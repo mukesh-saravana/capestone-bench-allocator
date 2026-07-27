@@ -1,8 +1,8 @@
 from collections import defaultdict
-from datetime import date
+from datetime import UTC, date, datetime
 from uuid import uuid4
 
-from sqlalchemy import JSON, Column, Date, ForeignKey, Integer, String, Text, select
+from sqlalchemy import JSON, Column, Date, DateTime, ForeignKey, Integer, String, Text, func, select
 from sqlalchemy.orm import DeclarativeBase, Session
 
 from .db import SessionLocal, engine
@@ -42,6 +42,8 @@ class EmployeeRow(Base):
     availability = Column(String(32), nullable=False)
     utilization_pct = Column(Integer, nullable=False, default=0)
     bench_since = Column(Date, nullable=True)
+    interview_score = Column(Integer, nullable=True)
+    interview_result = Column(String(64), nullable=True)
     avatar = Column(String(255), nullable=True)
     skills_json = Column(JSON, nullable=False, default=list)
 
@@ -73,6 +75,18 @@ class AllocationHistoryRow(Base):
     end_date = Column(Date, nullable=True)
     outcome = Column(String(32), nullable=False)
     notes = Column(Text, nullable=True)
+
+
+class ImportEventRow(Base):
+    __tablename__ = "import_events"
+
+    id = Column(String(64), primary_key=True)
+    dataset_key = Column(String(64), nullable=False, index=True)
+    filename = Column(String(255), nullable=False)
+    imported_rows = Column(Integer, nullable=False, default=0)
+    updated_rows = Column(Integer, nullable=False, default=0)
+    skipped_rows = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(UTC))
 
 
 SEED_USERS = [
@@ -314,6 +328,8 @@ def _employee_from_row(row: EmployeeRow) -> Employee:
         availability=row.availability,
         utilizationPct=row.utilization_pct,
         benchSince=row.bench_since,
+        interviewScore=row.interview_score,
+        interviewResult=row.interview_result,
         skills=skills,
         avatar=row.avatar,
     )
@@ -356,11 +372,29 @@ class DatabaseStore:
         if self._seeded:
             return
         Base.metadata.create_all(bind=engine)
+        self._ensure_employee_columns()
         with SessionLocal() as session:
             existing = session.scalar(select(EmployeeRow.id).limit(1))
             if existing is None:
                 self._seed(session)
         self._seeded = True
+
+    def _ensure_employee_columns(self) -> None:
+        with engine.begin() as connection:
+            dialect = connection.dialect.name
+            if dialect == "sqlite":
+                columns = {row[1] for row in connection.exec_driver_sql("PRAGMA table_info(employees)").fetchall()}
+            else:
+                columns = {
+                    row[0]
+                    for row in connection.exec_driver_sql(
+                        "SELECT column_name FROM information_schema.columns WHERE table_name = 'employees'"
+                    ).fetchall()
+                }
+            if "interview_score" not in columns:
+                connection.exec_driver_sql("ALTER TABLE employees ADD COLUMN interview_score INTEGER")
+            if "interview_result" not in columns:
+                connection.exec_driver_sql("ALTER TABLE employees ADD COLUMN interview_result VARCHAR(64)")
 
     def _seed(self, session: Session) -> None:
         session.add_all(UserRow(password_hash="", **row) for row in SEED_USERS)
@@ -462,6 +496,120 @@ class DatabaseStore:
         with SessionLocal() as session:
             rows = session.scalars(select(AllocationHistoryRow).order_by(AllocationHistoryRow.start_date.desc())).all()
         return [_allocation_from_row(row) for row in rows]
+
+    def import_candidates(self, rows: list[dict[str, object]], source_file: str) -> dict[str, int | str]:
+        self.initialize()
+        imported = 0
+        updated = 0
+        skipped = 0
+        with SessionLocal() as session:
+            for entry in rows:
+                candidate_id = str(entry["id"])
+                existing = session.scalar(select(EmployeeRow).where(EmployeeRow.id == candidate_id))
+                skills_json = [
+                    {
+                        "id": f"imp-{candidate_id}-{idx + 1}",
+                        "name": skill_name.strip(),
+                        "category": "Imported",
+                        "proficiency": 3,
+                    }
+                    for idx, skill_name in enumerate(str(entry["skills"]).split("|"))
+                    if skill_name.strip()
+                ]
+                if not skills_json:
+                    skipped += 1
+                    continue
+
+                if existing:
+                    existing.name = str(entry["name"])
+                    existing.email = str(entry["email"])
+                    existing.role = str(entry["role"])
+                    existing.department = str(entry["department"])
+                    existing.experience_years = int(entry["experienceYears"])
+                    existing.availability = str(entry["availability"])
+                    existing.utilization_pct = int(entry["utilizationPct"])
+                    existing.interview_score = int(entry["interviewScore"]) if entry["interviewScore"] is not None else None
+                    existing.interview_result = str(entry["interviewResult"]) if entry["interviewResult"] else None
+                    existing.skills_json = skills_json
+                    updated += 1
+                else:
+                    session.add(
+                        EmployeeRow(
+                            id=candidate_id,
+                            name=str(entry["name"]),
+                            email=str(entry["email"]),
+                            role=str(entry["role"]),
+                            department=str(entry["department"]),
+                            experience_years=int(entry["experienceYears"]),
+                            availability=str(entry["availability"]),
+                            utilization_pct=int(entry["utilizationPct"]),
+                            bench_since=entry["benchSince"],
+                            interview_score=int(entry["interviewScore"]) if entry["interviewScore"] is not None else None,
+                            interview_result=str(entry["interviewResult"]) if entry["interviewResult"] else None,
+                            avatar=None,
+                            skills_json=skills_json,
+                        )
+                    )
+                    imported += 1
+
+            session.add(
+                ImportEventRow(
+                    id=f"imp-{uuid4()}",
+                    dataset_key="candidate_profiles",
+                    filename=source_file,
+                    imported_rows=imported,
+                    updated_rows=updated,
+                    skipped_rows=skipped,
+                    created_at=datetime.now(UTC),
+                )
+            )
+            session.commit()
+        return {"imported": imported, "updated": updated, "skipped": skipped, "sourceFile": source_file}
+
+    def get_dataset_summaries(self) -> list[dict[str, object]]:
+        self.initialize()
+        with SessionLocal() as session:
+            employee_count = session.scalar(select(func.count()).select_from(EmployeeRow))
+            need_count = session.scalar(select(func.count()).select_from(ProjectNeedRow))
+            allocation_count = session.scalar(select(func.count()).select_from(AllocationHistoryRow))
+            latest_import = session.scalar(
+                select(ImportEventRow).where(ImportEventRow.dataset_key == "candidate_profiles").order_by(ImportEventRow.created_at.desc())
+            )
+        today = date.today().isoformat()
+        import_updated = latest_import.created_at.date().isoformat() if latest_import else today
+        return [
+            {"key": "employees", "label": "Employee Data", "rows": int(employee_count or 0), "lastUpdated": today, "importEnabled": False},
+            {"key": "project_needs", "label": "Projects Data", "rows": int(need_count or 0), "lastUpdated": today, "importEnabled": False},
+            {"key": "allocation_history", "label": "Allocations History", "rows": int(allocation_count or 0), "lastUpdated": today, "importEnabled": False},
+            {
+                "key": "candidate_profiles",
+                "label": "Candidate Profiles + Interview Scores",
+                "rows": int(employee_count or 0),
+                "lastUpdated": import_updated,
+                "importEnabled": True,
+            },
+        ]
+
+    def export_candidates_csv(self) -> str:
+        self.initialize()
+        employees = self.list_employees()
+        lines = [
+            "candidate_id,name,email,role,department,experience_years,skills,availability,utilization_pct,interview_score,interview_result,bench_since"
+        ]
+        for employee in employees:
+            skill_names = "|".join(skill.skill.name for skill in employee.skills)
+            interview_score = "" if employee.interviewScore is None else str(employee.interviewScore)
+            interview_result = "" if employee.interviewResult is None else employee.interviewResult
+            bench_since = "" if employee.benchSince is None else employee.benchSince.isoformat()
+            safe_name = employee.name.replace(",", " ")
+            safe_role = employee.role.replace(",", " ")
+            safe_department = employee.department.replace(",", " ")
+            safe_result = interview_result.replace(",", " ")
+            lines.append(
+                f"{employee.id},{safe_name},{employee.email},{safe_role},{safe_department},{employee.experienceYears},{skill_names},"
+                f"{employee.availability},{employee.utilizationPct},{interview_score},{safe_result},{bench_since}"
+            )
+        return "\n".join(lines)
 
     def get_bench_department_counts(self) -> dict[str, int]:
         counts: dict[str, int] = defaultdict(int)

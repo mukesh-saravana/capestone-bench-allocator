@@ -24,6 +24,7 @@ The solution has two main parts:
 - Historical allocation context for better matching
 - Bench and utilization analytics for managers
 - Simple chat-style interaction for allocation queries
+- Candidate profile import (CSV/XLSX) with interview score fields
 
 ## MVP Data Inputs
 
@@ -49,6 +50,7 @@ The solution has two main parts:
 - `backend/`: FastAPI backend API scaffold for auth, chat, recommendations, dashboard, and allocations
 - `backend/README.md`: detailed backend setup, tools install, environment, and API flow guide
 - `docs/frontend-backend-integration-readme.md`: step-by-step frontend + backend integration setup
+- `docs/settings-functionality-status.md`: current settings page feature status (working vs pending)
 - `frontend/flow.md`: non-technical end-to-end frontend usage and behavior guide
 - `README.md`: project overview and progress
 
@@ -123,15 +125,26 @@ Available MVP endpoints:
 - `GET /api/employees`
 - `GET /api/project-needs`
 - `GET /api/allocation-history`
+- `GET /api/data/summary`
 - `POST /api/chat/query`
 - `POST /api/recommendations`
 - `GET /api/dashboard/bench`
 - `GET /api/dashboard/utilization`
 - `GET /api/dashboard/allocations`
 - `POST /api/allocations`
+- `POST /api/import/candidates`
+- `GET /api/export/candidates`
 - `GET /health`
 
 ## Setup Guides
 
 - Backend setup (tools, env, run, testing, API flows): **`backend/README.md`**
 - Frontend + backend integration setup (end-to-end): **`docs/frontend-backend-integration-readme.md`**
+- Settings feature status (working vs pending): **`docs/settings-functionality-status.md`**
+
+## Import Samples
+
+Use these files to test candidate import from the Settings page:
+
+- `backend/samples/candidate-import-sample.csv`
+- `backend/samples/candidate-import-sample.xlsx`

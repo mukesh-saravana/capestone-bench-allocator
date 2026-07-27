@@ -63,6 +63,27 @@ def test_reference_data_endpoints() -> None:
     assert len(history.json()) >= 1
 
 
+def test_candidate_import_and_summary() -> None:
+    headers = login_headers()
+    csv_payload = (
+        "candidate_id,name,email,role,department,experience_years,skills,availability,utilization_pct,interview_score,interview_result\n"
+        "cand-101,Arun Kumar,arun.kumar@company.com,Engineer,Backend,5,Python|FastAPI|PostgreSQL,available,0,84,selected\n"
+    ).encode("utf-8")
+    response = client.post(
+        "/api/import/candidates",
+        headers=headers,
+        files={"file": ("candidates-sample.csv", csv_payload, "text/csv")},
+    )
+    assert response.status_code == 200
+    assert response.json()["imported"] >= 1
+
+    summary = client.get("/api/data/summary", headers=headers)
+    assert summary.status_code == 200
+    datasets = {item["key"]: item for item in summary.json()}
+    assert "candidate_profiles" in datasets
+    assert datasets["candidate_profiles"]["importEnabled"] is True
+
+
 def test_chat_query_returns_recommendations() -> None:
     headers = login_headers()
     response = client.post("/api/chat/query", headers=headers, json={"query": "Find a React developer", "strategy": "hybrid"})

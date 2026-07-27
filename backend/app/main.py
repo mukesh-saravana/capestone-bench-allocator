@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import csv
 from contextlib import asynccontextmanager
 from datetime import date
+from io import BytesIO, StringIO
 from uuid import uuid4
 
-from fastapi import Cookie, Depends, FastAPI, Header, HTTPException, Response, status
+from fastapi import Cookie, Depends, FastAPI, File, Header, HTTPException, Response, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from openpyxl import load_workbook
 
 from .data import store
 from .models import (
@@ -14,8 +18,10 @@ from .models import (
     AssignRequest,
     BenchMetrics,
     BenchTrendPoint,
+    CandidateImportResult,
     ChatQueryRequest,
     ChatQueryResponse,
+    DataSetSummary,
     Employee,
     LoginRequest,
     LoginResponse,
@@ -121,6 +127,101 @@ def list_project_needs(current_user: User = Depends(get_current_user)) -> list[P
 def list_allocation_history(current_user: User = Depends(get_current_user)) -> list[AllocationHistory]:
     _ = current_user
     return store.allocations
+
+
+@app.get("/api/data/summary", response_model=list[DataSetSummary])
+def dataset_summary(current_user: User = Depends(get_current_user)) -> list[DataSetSummary]:
+    _ = current_user
+    return [DataSetSummary(**item) for item in store.get_dataset_summaries()]
+
+
+def _parse_candidate_rows(file_name: str, content: bytes) -> list[dict[str, object]]:
+    normalized_name = file_name.lower()
+    if normalized_name.endswith(".csv"):
+        text_data = content.decode("utf-8-sig")
+        reader = csv.DictReader(StringIO(text_data))
+        rows = list(reader)
+    elif normalized_name.endswith(".xlsx"):
+        workbook = load_workbook(filename=BytesIO(content), read_only=True, data_only=True)
+        sheet = workbook.active
+        values = list(sheet.iter_rows(values_only=True))
+        if not values:
+            return []
+        headers = [str(value).strip() if value is not None else "" for value in values[0]]
+        rows = []
+        for value_row in values[1:]:
+            row = {headers[idx]: value_row[idx] for idx in range(min(len(headers), len(value_row)))}
+            rows.append(row)
+    else:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only CSV and XLSX files are supported")
+
+    parsed: list[dict[str, object]] = []
+    required_columns = {
+        "candidate_id",
+        "name",
+        "email",
+        "role",
+        "department",
+        "experience_years",
+        "skills",
+        "availability",
+        "utilization_pct",
+        "interview_score",
+        "interview_result",
+    }
+    allowed_availability = {"available", "allocated", "on_leave", "exiting"}
+    for index, row in enumerate(rows, start=2):
+        normalized = {str(key).strip().lower(): row.get(key) for key in row.keys() if key is not None}
+        missing = [column for column in required_columns if column not in normalized]
+        if missing:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Missing columns: {', '.join(sorted(missing))}")
+        try:
+            availability = str(normalized["availability"]).strip()
+            if availability not in allowed_availability:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid availability '{availability}' at row {index}",
+                )
+            parsed.append(
+                {
+                    "id": str(normalized["candidate_id"]).strip(),
+                    "name": str(normalized["name"]).strip(),
+                    "email": str(normalized["email"]).strip(),
+                    "role": str(normalized["role"]).strip(),
+                    "department": str(normalized["department"]).strip(),
+                    "experienceYears": int(normalized["experience_years"]),
+                    "skills": str(normalized["skills"]).strip(),
+                    "availability": availability,
+                    "utilizationPct": int(normalized["utilization_pct"]),
+                    "interviewScore": int(normalized["interview_score"]) if normalized["interview_score"] not in (None, "") else None,
+                    "interviewResult": str(normalized["interview_result"]).strip() if normalized["interview_result"] not in (None, "") else None,
+                    "benchSince": None,
+                }
+            )
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid data at row {index}") from exc
+    return parsed
+
+
+@app.post("/api/import/candidates", response_model=CandidateImportResult)
+async def import_candidates(file: UploadFile = File(...), current_user: User = Depends(get_current_user)) -> CandidateImportResult:
+    _ = current_user
+    file_name = file.filename or "candidates.csv"
+    content = await file.read()
+    rows = _parse_candidate_rows(file_name, content)
+    result = store.import_candidates(rows, file_name)
+    return CandidateImportResult(**result)
+
+
+@app.get("/api/export/candidates")
+def export_candidates(current_user: User = Depends(get_current_user)) -> StreamingResponse:
+    _ = current_user
+    payload = store.export_candidates_csv()
+    return StreamingResponse(
+        iter([payload.encode("utf-8")]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=candidates-export.csv"},
+    )
 
 
 @app.post("/api/chat/query", response_model=ChatQueryResponse)

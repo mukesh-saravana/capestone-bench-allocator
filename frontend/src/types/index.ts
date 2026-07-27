@@ -28,6 +28,8 @@ export interface Employee {
   availability: AvailabilityStatus;
   utilizationPct: number;
   benchSince?: string;
+  interviewScore?: number;
+  interviewResult?: string;
   skills: EmployeeSkill[];
   avatar?: string;
 }
@@ -164,4 +166,20 @@ export interface AllocationsSummary {
   activeAllocations: number;
   completedAllocations: number;
   recent: AllocationHistory[];
+}
+
+export interface DataSetSummary {
+  key: string;
+  label: string;
+  rows: number;
+  lastUpdated: string;
+  importEnabled: boolean;
+}
+
+export interface CandidateImportResult {
+  imported: number;
+  updated: number;
+  skipped: number;
+  sourceFile: string;
+  dataset: string;
 }
