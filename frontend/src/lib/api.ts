@@ -83,9 +83,13 @@ export async function getDataSummary(): Promise<DataSetSummary[]> {
 }
 
 export async function importCandidates(file: File): Promise<CandidateImportResult> {
+  return importDataset('candidate_profiles', file);
+}
+
+export async function importDataset(datasetKey: string, file: File): Promise<CandidateImportResult> {
   const formData = new FormData();
   formData.append('file', file);
-  const { data } = await apiClient.post<CandidateImportResult>('/api/import/candidates', formData, {
+  const { data } = await apiClient.post<CandidateImportResult>(`/api/import/${datasetKey}`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return data;

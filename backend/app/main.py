@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import csv
 from contextlib import asynccontextmanager
-from datetime import date
+from datetime import date, datetime
 from io import BytesIO, StringIO
 from uuid import uuid4
 
@@ -153,19 +153,19 @@ def delete_skill_tag(skill_id: str, current_user: User = Depends(get_current_use
 @app.get("/api/employees", response_model=list[Employee])
 def list_employees(current_user: User = Depends(get_current_user)) -> list[Employee]:
     _ = current_user
-    return list(store.employees.values())
+    return store.list_employees()
 
 
 @app.get("/api/project-needs", response_model=list[ProjectNeed])
 def list_project_needs(current_user: User = Depends(get_current_user)) -> list[ProjectNeed]:
     _ = current_user
-    return list(store.project_needs.values())
+    return store.list_project_needs()
 
 
 @app.get("/api/allocation-history", response_model=list[AllocationHistory])
 def list_allocation_history(current_user: User = Depends(get_current_user)) -> list[AllocationHistory]:
     _ = current_user
-    return store.allocations
+    return store.list_allocations()
 
 
 @app.get("/api/data/summary", response_model=list[DataSetSummary])
@@ -174,7 +174,7 @@ def dataset_summary(current_user: User = Depends(get_current_user)) -> list[Data
     return [DataSetSummary(**item) for item in store.get_dataset_summaries()]
 
 
-def _parse_candidate_rows(file_name: str, content: bytes) -> list[dict[str, object]]:
+def _read_tabular_rows(file_name: str, content: bytes) -> list[dict[str, object]]:
     normalized_name = file_name.lower()
     if normalized_name.endswith(".csv"):
         text_data = content.decode("utf-8-sig")
@@ -193,6 +193,26 @@ def _parse_candidate_rows(file_name: str, content: bytes) -> list[dict[str, obje
             rows.append(row)
     else:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only CSV and XLSX files are supported")
+    return rows
+
+
+def _parse_optional_date(value: object, *, field: str, row_number: int) -> date | None:
+    if value in (None, ""):
+        return None
+    try:
+        if isinstance(value, date):
+            if isinstance(value, datetime):
+                return value.date()
+            return value
+        return date.fromisoformat(str(value).strip())
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid date for '{field}' at row {row_number}; expected YYYY-MM-DD"
+        ) from exc
+
+
+def _parse_candidate_rows(file_name: str, content: bytes) -> list[dict[str, object]]:
+    rows = _read_tabular_rows(file_name, content)
 
     parsed: list[dict[str, object]] = []
     required_columns = {
@@ -242,14 +262,145 @@ def _parse_candidate_rows(file_name: str, content: bytes) -> list[dict[str, obje
     return parsed
 
 
+def _parse_employee_rows(file_name: str, content: bytes) -> list[dict[str, object]]:
+    rows = _read_tabular_rows(file_name, content)
+    parsed: list[dict[str, object]] = []
+    required_columns = {"employee_id", "name", "email", "role", "department", "experience_years", "skills", "availability", "utilization_pct"}
+    allowed_availability = {"available", "allocated", "on_leave", "exiting"}
+    for index, row in enumerate(rows, start=2):
+        normalized = {str(key).strip().lower(): row.get(key) for key in row.keys() if key is not None}
+        missing = [column for column in required_columns if column not in normalized]
+        if missing:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Missing columns: {', '.join(sorted(missing))}")
+        availability = str(normalized["availability"]).strip()
+        if availability not in allowed_availability:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid availability '{availability}' at row {index}",
+            )
+        try:
+            parsed.append(
+                {
+                    "id": str(normalized["employee_id"]).strip(),
+                    "name": str(normalized["name"]).strip(),
+                    "email": str(normalized["email"]).strip(),
+                    "role": str(normalized["role"]).strip(),
+                    "department": str(normalized["department"]).strip(),
+                    "experienceYears": int(normalized["experience_years"]),
+                    "skills": str(normalized["skills"]).strip(),
+                    "availability": availability,
+                    "utilizationPct": int(normalized["utilization_pct"]),
+                    "benchSince": _parse_optional_date(normalized.get("bench_since"), field="bench_since", row_number=index),
+                }
+            )
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid data at row {index}") from exc
+    return parsed
+
+
+def _parse_project_need_rows(file_name: str, content: bytes) -> list[dict[str, object]]:
+    rows = _read_tabular_rows(file_name, content)
+    parsed: list[dict[str, object]] = []
+    required_columns = {"need_id", "project_id", "project_name", "role_title", "open_slots", "required_skills", "status", "priority"}
+    allowed_status = {"open", "filled", "cancelled"}
+    allowed_priority = {"high", "medium", "low"}
+    for index, row in enumerate(rows, start=2):
+        normalized = {str(key).strip().lower(): row.get(key) for key in row.keys() if key is not None}
+        missing = [column for column in required_columns if column not in normalized]
+        if missing:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Missing columns: {', '.join(sorted(missing))}")
+        status_value = str(normalized["status"]).strip()
+        priority = str(normalized["priority"]).strip()
+        if status_value not in allowed_status:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid status '{status_value}' at row {index}")
+        if priority not in allowed_priority:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid priority '{priority}' at row {index}")
+        try:
+            parsed.append(
+                {
+                    "id": str(normalized["need_id"]).strip(),
+                    "projectId": str(normalized["project_id"]).strip(),
+                    "projectName": str(normalized["project_name"]).strip(),
+                    "roleTitle": str(normalized["role_title"]).strip(),
+                    "openSlots": int(normalized["open_slots"]),
+                    "requiredSkills": str(normalized["required_skills"]).strip(),
+                    "startDate": _parse_optional_date(normalized.get("start_date"), field="start_date", row_number=index),
+                    "status": status_value,
+                    "priority": priority,
+                }
+            )
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid data at row {index}") from exc
+    return parsed
+
+
+def _parse_allocation_rows(file_name: str, content: bytes) -> list[dict[str, object]]:
+    rows = _read_tabular_rows(file_name, content)
+    parsed: list[dict[str, object]] = []
+    required_columns = {
+        "allocation_id",
+        "employee_id",
+        "employee_name",
+        "project_id",
+        "project_name",
+        "role",
+        "start_date",
+        "outcome",
+    }
+    allowed_outcome = {"completed", "transferred", "early_exit", "ongoing"}
+    for index, row in enumerate(rows, start=2):
+        normalized = {str(key).strip().lower(): row.get(key) for key in row.keys() if key is not None}
+        missing = [column for column in required_columns if column not in normalized]
+        if missing:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Missing columns: {', '.join(sorted(missing))}")
+        outcome = str(normalized["outcome"]).strip()
+        if outcome not in allowed_outcome:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid outcome '{outcome}' at row {index}")
+        parsed.append(
+            {
+                "id": str(normalized["allocation_id"]).strip(),
+                "employeeId": str(normalized["employee_id"]).strip(),
+                "employeeName": str(normalized["employee_name"]).strip(),
+                "projectId": str(normalized["project_id"]).strip(),
+                "projectName": str(normalized["project_name"]).strip(),
+                "role": str(normalized["role"]).strip(),
+                "startDate": _parse_optional_date(normalized["start_date"], field="start_date", row_number=index),
+                "endDate": _parse_optional_date(normalized.get("end_date"), field="end_date", row_number=index),
+                "outcome": outcome,
+                "notes": str(normalized["notes"]).strip() if normalized.get("notes") not in (None, "") else None,
+            }
+        )
+        if parsed[-1]["startDate"] is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Missing start_date at row {index}")
+    return parsed
+
+
+@app.post("/api/import/{dataset_key}", response_model=CandidateImportResult)
+async def import_dataset(dataset_key: str, file: UploadFile = File(...), current_user: User = Depends(get_current_user)) -> CandidateImportResult:
+    _ = current_user
+    file_name = file.filename or f"{dataset_key}.csv"
+    content = await file.read()
+
+    if dataset_key == "candidate_profiles":
+        rows = _parse_candidate_rows(file_name, content)
+        result = store.import_candidates(rows, file_name)
+    elif dataset_key == "employees":
+        rows = _parse_employee_rows(file_name, content)
+        result = store.import_employees(rows, file_name)
+    elif dataset_key == "project_needs":
+        rows = _parse_project_need_rows(file_name, content)
+        result = store.import_project_needs(rows, file_name)
+    elif dataset_key == "allocation_history":
+        rows = _parse_allocation_rows(file_name, content)
+        result = store.import_allocation_history(rows, file_name)
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Unsupported dataset '{dataset_key}'")
+    return CandidateImportResult(**result)
+
+
 @app.post("/api/import/candidates", response_model=CandidateImportResult)
 async def import_candidates(file: UploadFile = File(...), current_user: User = Depends(get_current_user)) -> CandidateImportResult:
-    _ = current_user
-    file_name = file.filename or "candidates.csv"
-    content = await file.read()
-    rows = _parse_candidate_rows(file_name, content)
-    result = store.import_candidates(rows, file_name)
-    return CandidateImportResult(**result)
+    return await import_dataset(dataset_key="candidate_profiles", file=file, current_user=current_user)
 
 
 @app.get("/api/export/candidates")

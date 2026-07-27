@@ -24,12 +24,18 @@ It uses:
 
 ---
 
-## Candidate import samples
+## Dataset import samples
 
 Sample files are available in:
 
 - `backend/samples/candidate-import-sample.csv`
 - `backend/samples/candidate-import-sample.xlsx`
+- `backend/samples/employees-import-sample.csv`
+- `backend/samples/employees-import-sample.xlsx`
+- `backend/samples/project-needs-import-sample.csv`
+- `backend/samples/project-needs-import-sample.xlsx`
+- `backend/samples/allocation-history-import-sample.csv`
+- `backend/samples/allocation-history-import-sample.xlsx`
 
 Use these files directly from the Settings → Data Management page.
 
@@ -170,6 +176,13 @@ Backend aggregates and returns display-ready metrics.
 3. Backend updates employee availability/utilization
 4. Backend updates project need slots/status
 5. Frontend refreshes dashboard/recommendation queries
+
+### F. Data import flow
+
+1. Frontend uploads CSV/XLSX in Settings → Data Management.
+2. Backend validates and parses dataset rows (`POST /api/import/{dataset_key}`).
+3. Backend upserts records and tracks import event for summary.
+4. Frontend refreshes summary and dependent queries.
 
 ---
 

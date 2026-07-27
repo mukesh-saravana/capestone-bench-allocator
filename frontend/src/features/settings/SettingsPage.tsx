@@ -13,7 +13,7 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import DownloadIcon from '@mui/icons-material/Download';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { tokens } from '../../theme';
-import { createSkillTag, deleteSkillTag, exportCandidates, getDataSummary, getSkillTags, importCandidates, updateSkillTag } from '../../lib/api';
+import { createSkillTag, deleteSkillTag, exportCandidates, getDataSummary, getSkillTags, importDataset, updateSkillTag } from '../../lib/api';
 import { useToast } from '../../store/ToastContext';
 import type { DataSetSummary, SkillTag } from '../../types';
 
@@ -73,12 +73,13 @@ export function SettingsPage() {
   const [skillName, setSkillName] = useState('');
   const [skillCategory, setSkillCategory] = useState('');
   const [editingSkillId, setEditingSkillId] = useState<string | null>(null);
+  const [selectedDatasetKey, setSelectedDatasetKey] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const summaryQuery = useQuery({ queryKey: ['settings', 'data-summary'], queryFn: getDataSummary });
   const skillTagsQuery = useQuery({ queryKey: ['settings', 'skills'], queryFn: getSkillTags });
   const importMutation = useMutation({
-    mutationFn: importCandidates,
+    mutationFn: ({ datasetKey, file }: { datasetKey: string; file: File }) => importDataset(datasetKey, file),
     onSuccess: async (result) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['settings', 'data-summary'] }),
@@ -87,10 +88,13 @@ export function SettingsPage() {
         queryClient.invalidateQueries({ queryKey: ['dashboard', 'bench'] }),
         queryClient.invalidateQueries({ queryKey: ['dashboard', 'utilization'] }),
       ]);
-      showToast(`Import completed: ${result.imported} added, ${result.updated} updated, ${result.skipped} skipped`, 'success');
+      showToast(
+        `Import completed for ${result.dataset}: ${result.imported} added, ${result.updated} updated, ${result.skipped} skipped`,
+        'success'
+      );
     },
     onError: () => {
-      showToast('Candidate import failed. Please check file format and try again.', 'error');
+      showToast('Dataset import failed. Please check file format and try again.', 'error');
     },
   });
 
@@ -148,7 +152,8 @@ export function SettingsPage() {
   const candidateDataset = dataSets.find((dataset) => dataset.key === 'candidate_profiles') ?? null;
   const skillTags = skillTagsQuery.data ?? [];
 
-  const handleOpenFileDialog = () => {
+  const handleOpenFileDialog = (datasetKey: string) => {
+    setSelectedDatasetKey(datasetKey);
     fileInputRef.current?.click();
   };
 
@@ -157,7 +162,12 @@ export function SettingsPage() {
     if (!file) {
       return;
     }
-    void importMutation.mutateAsync(file);
+    if (!selectedDatasetKey) {
+      showToast('Please select a dataset before uploading.', 'error');
+      event.target.value = '';
+      return;
+    }
+    void importMutation.mutateAsync({ datasetKey: selectedDatasetKey, file });
     event.target.value = '';
   };
 
@@ -376,7 +386,7 @@ export function SettingsPage() {
                     label={dataset.label}
                     enabled={dataset.importEnabled}
                     uploading={importMutation.isPending}
-                    onClick={handleOpenFileDialog}
+                    onClick={() => handleOpenFileDialog(dataset.key)}
                   />
                   <Typography variant="body2" sx={{ mb: 1.5 }}>
                     Last updated: {dataset.lastUpdated} · {dataset.rows} records
@@ -411,8 +421,7 @@ export function SettingsPage() {
               />
 
               <Typography variant="body2" sx={{ color: tokens.colors.textTertiary }}>
-                Candidate import supports `.csv` and `.xlsx` with required columns:
-                candidate_id, name, email, role, department, experience_years, skills, availability, utilization_pct, interview_score, interview_result.
+                Upload supports `.csv` and `.xlsx` for all enabled datasets. Use dataset-specific sample files from `backend/samples`.
               </Typography>
 
               {candidateDataset && (

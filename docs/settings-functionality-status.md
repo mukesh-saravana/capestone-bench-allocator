@@ -11,10 +11,15 @@ Last updated: 2026-07-27
 
 ### Data Management tab
 - Dataset summary is fetched from backend (`GET /api/data/summary`).
+- Dataset import supports (`POST /api/import/{dataset_key}`):
+  - `candidate_profiles`
+  - `employees`
+  - `project_needs`
+  - `allocation_history`
 - Candidate dataset import supports:
   - `.csv`
   - `.xlsx`
-- Candidate import API is wired (`POST /api/import/candidates`).
+- Candidate import compatibility endpoint remains wired (`POST /api/import/candidates`).
 - Candidate export API is wired (`GET /api/export/candidates`).
 - Refresh summary button works and refetches server data.
 - Success/error toasts are shown for import/export actions.
@@ -37,8 +42,6 @@ Last updated: 2026-07-27
 - Settings are not persisted in backend DB (local browser only).
 
 ### Data Management tab
-- Import is currently enabled only for **Candidate Profiles + Interview Scores** dataset.
-- Employee/Projects/Allocations uploads are not wired yet.
 - Data validation reports are basic (row-level error only, no downloadable error report).
 
 ### Notifications tab
@@ -48,6 +51,5 @@ Last updated: 2026-07-27
 ## Recommended next steps
 
 1. Add backend persistence for General/Notification settings per user.
-2. Add upload handlers for employee/projects/allocations datasets.
-3. Add richer import validation report (invalid rows file + reason per row).
-4. Apply saved settings dynamically in frontend (theme/default landing route/tooltips).
+2. Add richer import validation report (invalid rows file + reason per row).
+3. Apply saved settings dynamically in frontend (theme/default landing route/tooltips).

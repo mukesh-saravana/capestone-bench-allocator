@@ -399,6 +399,7 @@ class DatabaseStore:
             existing = session.scalar(select(EmployeeRow.id).limit(1))
             if existing is None:
                 self._seed(session)
+            self._ensure_seed_skill_tags(session)
         self._seeded = True
 
     def _ensure_employee_columns(self) -> None:
@@ -425,6 +426,12 @@ class DatabaseStore:
         session.add_all(AllocationHistoryRow(**row) for row in SEED_ALLOCATIONS)
         session.add_all(SkillTagRow(**row) for row in SEED_SKILL_TAGS)
         session.commit()
+
+    def _ensure_seed_skill_tags(self, session: Session) -> None:
+        count = session.scalar(select(func.count()).select_from(SkillTagRow))
+        if int(count or 0) == 0:
+            session.add_all(SkillTagRow(**row) for row in SEED_SKILL_TAGS)
+            session.commit()
 
     @property
     def users(self) -> dict[str, User]:
@@ -519,6 +526,28 @@ class DatabaseStore:
         with SessionLocal() as session:
             rows = session.scalars(select(AllocationHistoryRow).order_by(AllocationHistoryRow.start_date.desc())).all()
         return [_allocation_from_row(row) for row in rows]
+
+    def _record_import_event(
+        self,
+        *,
+        session: Session,
+        dataset_key: str,
+        source_file: str,
+        imported: int,
+        updated: int,
+        skipped: int,
+    ) -> None:
+        session.add(
+            ImportEventRow(
+                id=f"imp-{uuid4()}",
+                dataset_key=dataset_key,
+                filename=source_file,
+                imported_rows=imported,
+                updated_rows=updated,
+                skipped_rows=skipped,
+                created_at=datetime.now(UTC),
+            )
+        )
 
     def list_skill_tags(self) -> list[SkillTag]:
         self.initialize()
@@ -618,19 +647,181 @@ class DatabaseStore:
                     )
                     imported += 1
 
-            session.add(
-                ImportEventRow(
-                    id=f"imp-{uuid4()}",
-                    dataset_key="candidate_profiles",
-                    filename=source_file,
-                    imported_rows=imported,
-                    updated_rows=updated,
-                    skipped_rows=skipped,
-                    created_at=datetime.now(UTC),
-                )
+            self._record_import_event(
+                session=session,
+                dataset_key="candidate_profiles",
+                source_file=source_file,
+                imported=imported,
+                updated=updated,
+                skipped=skipped,
             )
             session.commit()
-        return {"imported": imported, "updated": updated, "skipped": skipped, "sourceFile": source_file}
+        return {"imported": imported, "updated": updated, "skipped": skipped, "sourceFile": source_file, "dataset": "candidate_profiles"}
+
+    def import_employees(self, rows: list[dict[str, object]], source_file: str) -> dict[str, int | str]:
+        self.initialize()
+        imported = 0
+        updated = 0
+        skipped = 0
+        with SessionLocal() as session:
+            for entry in rows:
+                employee_id = str(entry["id"])
+                existing = session.scalar(select(EmployeeRow).where(EmployeeRow.id == employee_id))
+                skills_json = [
+                    {
+                        "id": f"emp-{employee_id}-{index + 1}",
+                        "name": skill_name.strip(),
+                        "category": "Imported",
+                        "proficiency": 3,
+                    }
+                    for index, skill_name in enumerate(str(entry["skills"]).split("|"))
+                    if skill_name.strip()
+                ]
+                if not skills_json:
+                    skipped += 1
+                    continue
+                if existing:
+                    existing.name = str(entry["name"])
+                    existing.email = str(entry["email"])
+                    existing.role = str(entry["role"])
+                    existing.department = str(entry["department"])
+                    existing.experience_years = int(entry["experienceYears"])
+                    existing.availability = str(entry["availability"])
+                    existing.utilization_pct = int(entry["utilizationPct"])
+                    existing.bench_since = entry["benchSince"]
+                    existing.skills_json = skills_json
+                    updated += 1
+                else:
+                    session.add(
+                        EmployeeRow(
+                            id=employee_id,
+                            name=str(entry["name"]),
+                            email=str(entry["email"]),
+                            role=str(entry["role"]),
+                            department=str(entry["department"]),
+                            experience_years=int(entry["experienceYears"]),
+                            availability=str(entry["availability"]),
+                            utilization_pct=int(entry["utilizationPct"]),
+                            bench_since=entry["benchSince"],
+                            interview_score=None,
+                            interview_result=None,
+                            avatar=None,
+                            skills_json=skills_json,
+                        )
+                    )
+                    imported += 1
+            self._record_import_event(
+                session=session,
+                dataset_key="employees",
+                source_file=source_file,
+                imported=imported,
+                updated=updated,
+                skipped=skipped,
+            )
+            session.commit()
+        return {"imported": imported, "updated": updated, "skipped": skipped, "sourceFile": source_file, "dataset": "employees"}
+
+    def import_project_needs(self, rows: list[dict[str, object]], source_file: str) -> dict[str, int | str]:
+        self.initialize()
+        imported = 0
+        updated = 0
+        skipped = 0
+        with SessionLocal() as session:
+            for entry in rows:
+                need_id = str(entry["id"])
+                existing = session.scalar(select(ProjectNeedRow).where(ProjectNeedRow.id == need_id))
+                required_skills = [skill.strip() for skill in str(entry["requiredSkills"]).split("|") if skill.strip()]
+                if not required_skills:
+                    skipped += 1
+                    continue
+                if existing:
+                    existing.project_id = str(entry["projectId"])
+                    existing.project_name = str(entry["projectName"])
+                    existing.role_title = str(entry["roleTitle"])
+                    existing.open_slots = int(entry["openSlots"])
+                    existing.required_skills_json = required_skills
+                    existing.start_date = entry["startDate"]
+                    existing.status = str(entry["status"])
+                    existing.priority = str(entry["priority"])
+                    updated += 1
+                else:
+                    session.add(
+                        ProjectNeedRow(
+                            id=need_id,
+                            project_id=str(entry["projectId"]),
+                            project_name=str(entry["projectName"]),
+                            role_title=str(entry["roleTitle"]),
+                            open_slots=int(entry["openSlots"]),
+                            required_skills_json=required_skills,
+                            start_date=entry["startDate"],
+                            status=str(entry["status"]),
+                            priority=str(entry["priority"]),
+                        )
+                    )
+                    imported += 1
+            self._record_import_event(
+                session=session,
+                dataset_key="project_needs",
+                source_file=source_file,
+                imported=imported,
+                updated=updated,
+                skipped=skipped,
+            )
+            session.commit()
+        return {"imported": imported, "updated": updated, "skipped": skipped, "sourceFile": source_file, "dataset": "project_needs"}
+
+    def import_allocation_history(self, rows: list[dict[str, object]], source_file: str) -> dict[str, int | str]:
+        self.initialize()
+        imported = 0
+        updated = 0
+        skipped = 0
+        with SessionLocal() as session:
+            for entry in rows:
+                allocation_id = str(entry["id"])
+                existing = session.scalar(select(AllocationHistoryRow).where(AllocationHistoryRow.id == allocation_id))
+                if existing:
+                    existing.employee_id = str(entry["employeeId"])
+                    existing.employee_name = str(entry["employeeName"])
+                    existing.project_id = str(entry["projectId"])
+                    existing.project_name = str(entry["projectName"])
+                    existing.role = str(entry["role"])
+                    existing.start_date = entry["startDate"]
+                    existing.end_date = entry["endDate"]
+                    existing.outcome = str(entry["outcome"])
+                    existing.notes = entry["notes"]
+                    updated += 1
+                else:
+                    session.add(
+                        AllocationHistoryRow(
+                            id=allocation_id,
+                            employee_id=str(entry["employeeId"]),
+                            employee_name=str(entry["employeeName"]),
+                            project_id=str(entry["projectId"]),
+                            project_name=str(entry["projectName"]),
+                            role=str(entry["role"]),
+                            start_date=entry["startDate"],
+                            end_date=entry["endDate"],
+                            outcome=str(entry["outcome"]),
+                            notes=entry["notes"],
+                        )
+                    )
+                    imported += 1
+            self._record_import_event(
+                session=session,
+                dataset_key="allocation_history",
+                source_file=source_file,
+                imported=imported,
+                updated=updated,
+                skipped=skipped,
+            )
+            session.commit()
+        return {
+            "imported": imported,
+            "updated": updated,
+            "skipped": skipped,
+            "sourceFile": source_file,
+            "dataset": "allocation_history",
+        }
 
     def get_dataset_summaries(self) -> list[dict[str, object]]:
         self.initialize()
@@ -638,20 +829,41 @@ class DatabaseStore:
             employee_count = session.scalar(select(func.count()).select_from(EmployeeRow))
             need_count = session.scalar(select(func.count()).select_from(ProjectNeedRow))
             allocation_count = session.scalar(select(func.count()).select_from(AllocationHistoryRow))
-            latest_import = session.scalar(
-                select(ImportEventRow).where(ImportEventRow.dataset_key == "candidate_profiles").order_by(ImportEventRow.created_at.desc())
-            )
+            import_rows = session.scalars(
+                select(ImportEventRow).order_by(ImportEventRow.created_at.desc())
+            ).all()
         today = date.today().isoformat()
-        import_updated = latest_import.created_at.date().isoformat() if latest_import else today
+        latest_by_dataset: dict[str, str] = {}
+        for row in import_rows:
+            if row.dataset_key not in latest_by_dataset:
+                latest_by_dataset[row.dataset_key] = row.created_at.date().isoformat()
         return [
-            {"key": "employees", "label": "Employee Data", "rows": int(employee_count or 0), "lastUpdated": today, "importEnabled": False},
-            {"key": "project_needs", "label": "Projects Data", "rows": int(need_count or 0), "lastUpdated": today, "importEnabled": False},
-            {"key": "allocation_history", "label": "Allocations History", "rows": int(allocation_count or 0), "lastUpdated": today, "importEnabled": False},
+            {
+                "key": "employees",
+                "label": "Employee Data",
+                "rows": int(employee_count or 0),
+                "lastUpdated": latest_by_dataset.get("employees", today),
+                "importEnabled": True,
+            },
+            {
+                "key": "project_needs",
+                "label": "Projects Data",
+                "rows": int(need_count or 0),
+                "lastUpdated": latest_by_dataset.get("project_needs", today),
+                "importEnabled": True,
+            },
+            {
+                "key": "allocation_history",
+                "label": "Allocations History",
+                "rows": int(allocation_count or 0),
+                "lastUpdated": latest_by_dataset.get("allocation_history", today),
+                "importEnabled": True,
+            },
             {
                 "key": "candidate_profiles",
                 "label": "Candidate Profiles + Interview Scores",
                 "rows": int(employee_count or 0),
-                "lastUpdated": import_updated,
+                "lastUpdated": latest_by_dataset.get("candidate_profiles", today),
                 "importEnabled": True,
             },
         ]

@@ -69,11 +69,7 @@ def test_candidate_import_and_summary() -> None:
         "candidate_id,name,email,role,department,experience_years,skills,availability,utilization_pct,interview_score,interview_result\n"
         "cand-101,Arun Kumar,arun.kumar@company.com,Engineer,Backend,5,Python|FastAPI|PostgreSQL,available,0,84,selected\n"
     ).encode("utf-8")
-    response = client.post(
-        "/api/import/candidates",
-        headers=headers,
-        files={"file": ("candidates-sample.csv", csv_payload, "text/csv")},
-    )
+    response = client.post("/api/import/candidate_profiles", headers=headers, files={"file": ("candidates-sample.csv", csv_payload, "text/csv")})
     assert response.status_code == 200
     assert response.json()["imported"] >= 1
 
@@ -81,7 +77,42 @@ def test_candidate_import_and_summary() -> None:
     assert summary.status_code == 200
     datasets = {item["key"]: item for item in summary.json()}
     assert "candidate_profiles" in datasets
+    assert datasets["employees"]["importEnabled"] is True
+    assert datasets["project_needs"]["importEnabled"] is True
+    assert datasets["allocation_history"]["importEnabled"] is True
     assert datasets["candidate_profiles"]["importEnabled"] is True
+
+
+def test_other_dataset_imports() -> None:
+    headers = login_headers()
+    employees_payload = (
+        "employee_id,name,email,role,department,experience_years,skills,availability,utilization_pct,bench_since\n"
+        "emp-777,Test Employee,test.employee@company.com,Engineer,Backend,4,Python|FastAPI,available,20,2026-07-01\n"
+    ).encode("utf-8")
+    project_payload = (
+        "need_id,project_id,project_name,role_title,open_slots,required_skills,start_date,status,priority\n"
+        "need-777,prj-777,Test Project,Backend Engineer,2,Python|SQL,2026-08-10,open,high\n"
+    ).encode("utf-8")
+    allocation_payload = (
+        "allocation_id,employee_id,employee_name,project_id,project_name,role,start_date,end_date,outcome,notes\n"
+        "alloc-777,emp-777,Test Employee,prj-777,Test Project,Backend Engineer,2026-08-12,,ongoing,Imported allocation\n"
+    ).encode("utf-8")
+
+    employee_response = client.post("/api/import/employees", headers=headers, files={"file": ("employees.csv", employees_payload, "text/csv")})
+    assert employee_response.status_code == 200
+    assert employee_response.json()["dataset"] == "employees"
+
+    project_response = client.post("/api/import/project_needs", headers=headers, files={"file": ("project-needs.csv", project_payload, "text/csv")})
+    assert project_response.status_code == 200
+    assert project_response.json()["dataset"] == "project_needs"
+
+    allocation_response = client.post(
+        "/api/import/allocation_history",
+        headers=headers,
+        files={"file": ("allocations.csv", allocation_payload, "text/csv")},
+    )
+    assert allocation_response.status_code == 200
+    assert allocation_response.json()["dataset"] == "allocation_history"
 
 
 def test_skill_tags_crud() -> None:

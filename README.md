@@ -24,7 +24,7 @@ The solution has two main parts:
 - Historical allocation context for better matching
 - Bench and utilization analytics for managers
 - Simple chat-style interaction for allocation queries
-- Candidate profile import (CSV/XLSX) with interview score fields
+- Dataset import (CSV/XLSX) for candidates, employees, project needs, and allocation history
 
 ## MVP Data Inputs
 
@@ -136,7 +136,8 @@ Available MVP endpoints:
 - `GET /api/dashboard/utilization`
 - `GET /api/dashboard/allocations`
 - `POST /api/allocations`
-- `POST /api/import/candidates`
+- `POST /api/import/{dataset_key}` (`candidate_profiles`, `employees`, `project_needs`, `allocation_history`)
+- `POST /api/import/candidates` (compatibility alias for candidate profiles)
 - `GET /api/export/candidates`
 - `GET /health`
 
@@ -148,7 +149,13 @@ Available MVP endpoints:
 
 ## Import Samples
 
-Use these files to test candidate import from the Settings page:
+Use these files to test dataset imports from the Settings page:
 
 - `backend/samples/candidate-import-sample.csv`
 - `backend/samples/candidate-import-sample.xlsx`
+- `backend/samples/employees-import-sample.csv`
+- `backend/samples/employees-import-sample.xlsx`
+- `backend/samples/project-needs-import-sample.csv`
+- `backend/samples/project-needs-import-sample.xlsx`
+- `backend/samples/allocation-history-import-sample.csv`
+- `backend/samples/allocation-history-import-sample.xlsx`
