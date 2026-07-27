@@ -28,6 +28,9 @@ from .models import (
     ProjectNeed,
     RecommendationRequest,
     RecommendationResponse,
+    SkillTag,
+    SkillTagCreateRequest,
+    SkillTagUpdateRequest,
     User,
     UtilizationDepartmentPoint,
     UtilizationMetrics,
@@ -109,6 +112,42 @@ def logout(
 @app.get("/api/auth/me", response_model=User)
 def me(current_user: User = Depends(get_current_user)) -> User:
     return current_user
+
+
+@app.get("/api/settings/skills", response_model=list[SkillTag])
+def list_skill_tags(current_user: User = Depends(get_current_user)) -> list[SkillTag]:
+    _ = current_user
+    return store.list_skill_tags()
+
+
+@app.post("/api/settings/skills", response_model=SkillTag, status_code=status.HTTP_201_CREATED)
+def create_skill_tag(payload: SkillTagCreateRequest, current_user: User = Depends(get_current_user)) -> SkillTag:
+    _ = current_user
+    try:
+        return store.create_skill_tag(name=payload.name, category=payload.category)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@app.put("/api/settings/skills/{skill_id}", response_model=SkillTag)
+def update_skill_tag(skill_id: str, payload: SkillTagUpdateRequest, current_user: User = Depends(get_current_user)) -> SkillTag:
+    _ = current_user
+    try:
+        return store.update_skill_tag(skill_id=skill_id, name=payload.name, category=payload.category)
+    except ValueError as exc:
+        detail = str(exc)
+        status_code = status.HTTP_404_NOT_FOUND if "not found" in detail.lower() else status.HTTP_400_BAD_REQUEST
+        raise HTTPException(status_code=status_code, detail=detail) from exc
+
+
+@app.delete("/api/settings/skills/{skill_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_skill_tag(skill_id: str, current_user: User = Depends(get_current_user)) -> Response:
+    _ = current_user
+    try:
+        store.delete_skill_tag(skill_id=skill_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @app.get("/api/employees", response_model=list[Employee])

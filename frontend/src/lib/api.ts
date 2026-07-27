@@ -13,6 +13,7 @@ import type {
   ProjectNeed,
   RecommendationRequest,
   RecommendationResponse,
+  SkillTag,
   User,
   UtilizationMetrics,
 } from '../types';
@@ -93,4 +94,23 @@ export async function importCandidates(file: File): Promise<CandidateImportResul
 export async function exportCandidates(): Promise<Blob> {
   const response = await apiClient.get('/api/export/candidates', { responseType: 'blob' });
   return response.data as Blob;
+}
+
+export async function getSkillTags(): Promise<SkillTag[]> {
+  const { data } = await apiClient.get<SkillTag[]>('/api/settings/skills');
+  return data;
+}
+
+export async function createSkillTag(payload: { name: string; category: string }): Promise<SkillTag> {
+  const { data } = await apiClient.post<SkillTag>('/api/settings/skills', payload);
+  return data;
+}
+
+export async function updateSkillTag(skillId: string, payload: { name: string; category: string }): Promise<SkillTag> {
+  const { data } = await apiClient.put<SkillTag>(`/api/settings/skills/${skillId}`, payload);
+  return data;
+}
+
+export async function deleteSkillTag(skillId: string): Promise<void> {
+  await apiClient.delete(`/api/settings/skills/${skillId}`);
 }

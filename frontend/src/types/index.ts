@@ -183,3 +183,10 @@ export interface CandidateImportResult {
   sourceFile: string;
   dataset: string;
 }
+
+export interface SkillTag {
+  id: string;
+  name: string;
+  category: string;
+  usage: number;
+}

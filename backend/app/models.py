@@ -201,3 +201,20 @@ class CandidateImportResult(BaseModel):
     skipped: int
     sourceFile: str
     dataset: str = "candidate_profiles"
+
+
+class SkillTag(BaseModel):
+    id: str
+    name: str
+    category: str
+    usage: int = 0
+
+
+class SkillTagCreateRequest(BaseModel):
+    name: str
+    category: str
+
+
+class SkillTagUpdateRequest(BaseModel):
+    name: str
+    category: str

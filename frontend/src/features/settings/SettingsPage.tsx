@@ -2,7 +2,7 @@ import {
   Box, Paper, Tabs, Tab, Typography, Switch, FormControlLabel,
   Radio, RadioGroup, FormControl, FormLabel, Button, Divider,
   Table, TableBody, TableCell, TableHead, TableRow, Chip, IconButton,
-  CircularProgress,
+  CircularProgress, TextField,
 } from '@mui/material';
 import { useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -13,18 +13,9 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import DownloadIcon from '@mui/icons-material/Download';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { tokens } from '../../theme';
-import { exportCandidates, getDataSummary, importCandidates } from '../../lib/api';
+import { createSkillTag, deleteSkillTag, exportCandidates, getDataSummary, getSkillTags, importCandidates, updateSkillTag } from '../../lib/api';
 import { useToast } from '../../store/ToastContext';
-import type { DataSetSummary } from '../../types';
-
-const SAMPLE_SKILLS = [
-  { name: 'React', category: 'Frontend', usage: 12 },
-  { name: 'TypeScript', category: 'Frontend', usage: 10 },
-  { name: 'Python', category: 'Backend', usage: 8 },
-  { name: 'AWS', category: 'Cloud', usage: 9 },
-  { name: 'Docker', category: 'DevOps', usage: 6 },
-  { name: 'PostgreSQL', category: 'Data', usage: 5 },
-];
+import type { DataSetSummary, SkillTag } from '../../types';
 
 interface UploadAreaProps {
   label: string;
@@ -79,9 +70,13 @@ export function SettingsPage() {
   const [allocationNotifications, setAllocationNotifications] = useState(true);
   const [recommendationNotifications, setRecommendationNotifications] = useState(true);
   const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'off'>('daily');
+  const [skillName, setSkillName] = useState('');
+  const [skillCategory, setSkillCategory] = useState('');
+  const [editingSkillId, setEditingSkillId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const summaryQuery = useQuery({ queryKey: ['settings', 'data-summary'], queryFn: getDataSummary });
+  const skillTagsQuery = useQuery({ queryKey: ['settings', 'skills'], queryFn: getSkillTags });
   const importMutation = useMutation({
     mutationFn: importCandidates,
     onSuccess: async (result) => {
@@ -110,8 +105,48 @@ export function SettingsPage() {
     },
   });
 
+  const createSkillMutation = useMutation({
+    mutationFn: createSkillTag,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['settings', 'skills'] });
+      setSkillName('');
+      setSkillCategory('');
+      showToast('Skill tag created.', 'success');
+    },
+    onError: () => {
+      showToast('Failed to create skill tag.', 'error');
+    },
+  });
+
+  const updateSkillMutation = useMutation({
+    mutationFn: ({ skillId, payload }: { skillId: string; payload: { name: string; category: string } }) =>
+      updateSkillTag(skillId, payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['settings', 'skills'] });
+      setSkillName('');
+      setSkillCategory('');
+      setEditingSkillId(null);
+      showToast('Skill tag updated.', 'success');
+    },
+    onError: () => {
+      showToast('Failed to update skill tag.', 'error');
+    },
+  });
+
+  const deleteSkillMutation = useMutation({
+    mutationFn: deleteSkillTag,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['settings', 'skills'] });
+      showToast('Skill tag deleted.', 'success');
+    },
+    onError: () => {
+      showToast('Failed to delete skill tag.', 'error');
+    },
+  });
+
   const dataSets = useMemo(() => summaryQuery.data ?? [], [summaryQuery.data]);
   const candidateDataset = dataSets.find((dataset) => dataset.key === 'candidate_profiles') ?? null;
+  const skillTags = skillTagsQuery.data ?? [];
 
   const handleOpenFileDialog = () => {
     fileInputRef.current?.click();
@@ -153,6 +188,32 @@ export function SettingsPage() {
       })
     );
     showToast('Notification settings saved locally.', 'success');
+  };
+
+  const submitSkill = () => {
+    const name = skillName.trim();
+    const category = skillCategory.trim();
+    if (!name || !category) {
+      showToast('Skill name and category are required.', 'error');
+      return;
+    }
+    if (editingSkillId) {
+      void updateSkillMutation.mutateAsync({ skillId: editingSkillId, payload: { name, category } });
+      return;
+    }
+    void createSkillMutation.mutateAsync({ name, category });
+  };
+
+  const startEditSkill = (skill: SkillTag) => {
+    setEditingSkillId(skill.id);
+    setSkillName(skill.name);
+    setSkillCategory(skill.category);
+  };
+
+  const cancelSkillEdit = () => {
+    setEditingSkillId(null);
+    setSkillName('');
+    setSkillCategory('');
   };
 
   return (
@@ -197,17 +258,60 @@ export function SettingsPage() {
 
           {tab === 1 && (
             <Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, gap: 1, flexWrap: 'wrap' }}>
                 <Typography variant="h3">Skill Tags</Typography>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<RefreshIcon />}
+                  onClick={() => void queryClient.invalidateQueries({ queryKey: ['settings', 'skills'] })}
+                >
+                  Refresh
+                </Button>
+              </Box>
+
+              <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+                <TextField
+                  label="Skill Name"
+                  size="small"
+                  value={skillName}
+                  onChange={(e) => setSkillName(e.target.value)}
+                  sx={{ minWidth: 220 }}
+                />
+                <TextField
+                  label="Category"
+                  size="small"
+                  value={skillCategory}
+                  onChange={(e) => setSkillCategory(e.target.value)}
+                  sx={{ minWidth: 180 }}
+                />
                 <Button
                   variant="contained"
                   size="small"
                   startIcon={<AddIcon />}
-                  onClick={() => showToast('Skill tag CRUD will be connected in next backend iteration.', 'info')}
+                  onClick={submitSkill}
+                  disabled={createSkillMutation.isPending || updateSkillMutation.isPending}
                 >
-                  Add Skill
+                  {editingSkillId ? 'Update Skill' : 'Add Skill'}
                 </Button>
+                {editingSkillId && (
+                  <Button variant="outlined" color="inherit" size="small" onClick={cancelSkillEdit}>
+                    Cancel
+                  </Button>
+                )}
               </Box>
+
+              {skillTagsQuery.isLoading && (
+                <Box sx={{ py: 2, display: 'flex', justifyContent: 'center' }}>
+                  <CircularProgress size={24} />
+                </Box>
+              )}
+              {skillTagsQuery.isError && (
+                <Typography color="error" sx={{ mb: 2 }}>
+                  Failed to load skill tags.
+                </Typography>
+              )}
+
               <Table size="small">
                 <TableHead>
                   <TableRow sx={{ '& th': { bgcolor: tokens.colors.neutralDark, fontWeight: 600 } }}>
@@ -218,14 +322,21 @@ export function SettingsPage() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {SAMPLE_SKILLS.map((skill) => (
-                    <TableRow key={skill.name} sx={{ '&:hover': { bgcolor: tokens.colors.background } }}>
+                  {skillTags.map((skill) => (
+                    <TableRow key={skill.id} sx={{ '&:hover': { bgcolor: tokens.colors.background } }}>
                       <TableCell sx={{ fontWeight: 500 }}>{skill.name}</TableCell>
                       <TableCell><Chip label={skill.category} size="small" variant="outlined" sx={{ fontSize: '0.7rem' }} /></TableCell>
                       <TableCell align="center">{skill.usage}</TableCell>
                       <TableCell align="right">
-                        <IconButton size="small" onClick={() => showToast('Edit skill is not wired yet.', 'info')}><EditIcon fontSize="small" /></IconButton>
-                        <IconButton size="small" color="error" onClick={() => showToast('Delete skill is not wired yet.', 'info')}><DeleteIcon fontSize="small" /></IconButton>
+                        <IconButton size="small" onClick={() => startEditSkill(skill)}><EditIcon fontSize="small" /></IconButton>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => void deleteSkillMutation.mutateAsync(skill.id)}
+                          disabled={deleteSkillMutation.isPending}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
                       </TableCell>
                     </TableRow>
                   ))}

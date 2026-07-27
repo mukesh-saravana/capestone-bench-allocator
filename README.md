@@ -122,6 +122,10 @@ Available MVP endpoints:
 - `POST /api/auth/login`
 - `POST /api/auth/logout`
 - `GET /api/auth/me`
+- `GET /api/settings/skills`
+- `POST /api/settings/skills`
+- `PUT /api/settings/skills/{skill_id}`
+- `DELETE /api/settings/skills/{skill_id}`
 - `GET /api/employees`
 - `GET /api/project-needs`
 - `GET /api/allocation-history`

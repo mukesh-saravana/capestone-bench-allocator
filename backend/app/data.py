@@ -6,7 +6,7 @@ from sqlalchemy import JSON, Column, Date, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import DeclarativeBase, Session
 
 from .db import SessionLocal, engine
-from .models import AllocationHistory, Employee, EmployeeSkill, ProjectNeed, Skill, User
+from .models import AllocationHistory, Employee, EmployeeSkill, ProjectNeed, Skill, SkillTag, User
 
 
 class Base(DeclarativeBase):
@@ -87,6 +87,15 @@ class ImportEventRow(Base):
     updated_rows = Column(Integer, nullable=False, default=0)
     skipped_rows = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(UTC))
+
+
+class SkillTagRow(Base):
+    __tablename__ = "skill_tags"
+
+    id = Column(String(64), primary_key=True)
+    name = Column(String(128), unique=True, nullable=False)
+    category = Column(String(128), nullable=False)
+    usage = Column(Integer, nullable=False, default=0)
 
 
 SEED_USERS = [
@@ -309,6 +318,15 @@ SEED_ALLOCATIONS = [
     },
 ]
 
+SEED_SKILL_TAGS = [
+    {"id": "tag-001", "name": "React", "category": "Frontend", "usage": 12},
+    {"id": "tag-002", "name": "TypeScript", "category": "Frontend", "usage": 10},
+    {"id": "tag-003", "name": "Python", "category": "Backend", "usage": 8},
+    {"id": "tag-004", "name": "AWS", "category": "Cloud", "usage": 9},
+    {"id": "tag-005", "name": "Docker", "category": "DevOps", "usage": 6},
+    {"id": "tag-006", "name": "PostgreSQL", "category": "Data", "usage": 5},
+]
+
 
 def _employee_from_row(row: EmployeeRow) -> Employee:
     skills = [
@@ -364,6 +382,10 @@ def _allocation_from_row(row: AllocationHistoryRow) -> AllocationHistory:
     )
 
 
+def _skill_tag_from_row(row: SkillTagRow) -> SkillTag:
+    return SkillTag(id=row.id, name=row.name, category=row.category, usage=row.usage)
+
+
 class DatabaseStore:
     def __init__(self) -> None:
         self._seeded = False
@@ -401,6 +423,7 @@ class DatabaseStore:
         session.add_all(EmployeeRow(**row) for row in SEED_EMPLOYEES)
         session.add_all(ProjectNeedRow(**row) for row in SEED_PROJECT_NEEDS)
         session.add_all(AllocationHistoryRow(**row) for row in SEED_ALLOCATIONS)
+        session.add_all(SkillTagRow(**row) for row in SEED_SKILL_TAGS)
         session.commit()
 
     @property
@@ -496,6 +519,49 @@ class DatabaseStore:
         with SessionLocal() as session:
             rows = session.scalars(select(AllocationHistoryRow).order_by(AllocationHistoryRow.start_date.desc())).all()
         return [_allocation_from_row(row) for row in rows]
+
+    def list_skill_tags(self) -> list[SkillTag]:
+        self.initialize()
+        with SessionLocal() as session:
+            rows = session.scalars(select(SkillTagRow).order_by(SkillTagRow.name.asc())).all()
+        return [_skill_tag_from_row(row) for row in rows]
+
+    def create_skill_tag(self, *, name: str, category: str) -> SkillTag:
+        self.initialize()
+        normalized_name = name.strip()
+        with SessionLocal() as session:
+            existing = session.scalar(select(SkillTagRow).where(SkillTagRow.name == normalized_name))
+            if existing:
+                raise ValueError("Skill tag already exists")
+            row = SkillTagRow(id=f"tag-{uuid4()}", name=normalized_name, category=category.strip(), usage=0)
+            session.add(row)
+            session.commit()
+            session.refresh(row)
+            return _skill_tag_from_row(row)
+
+    def update_skill_tag(self, *, skill_id: str, name: str, category: str) -> SkillTag:
+        self.initialize()
+        with SessionLocal() as session:
+            row = session.scalar(select(SkillTagRow).where(SkillTagRow.id == skill_id))
+            if not row:
+                raise ValueError("Skill tag not found")
+            duplicate = session.scalar(select(SkillTagRow).where(SkillTagRow.name == name.strip(), SkillTagRow.id != skill_id))
+            if duplicate:
+                raise ValueError("Skill tag already exists")
+            row.name = name.strip()
+            row.category = category.strip()
+            session.commit()
+            session.refresh(row)
+            return _skill_tag_from_row(row)
+
+    def delete_skill_tag(self, *, skill_id: str) -> None:
+        self.initialize()
+        with SessionLocal() as session:
+            row = session.scalar(select(SkillTagRow).where(SkillTagRow.id == skill_id))
+            if not row:
+                raise ValueError("Skill tag not found")
+            session.delete(row)
+            session.commit()
 
     def import_candidates(self, rows: list[dict[str, object]], source_file: str) -> dict[str, int | str]:
         self.initialize()

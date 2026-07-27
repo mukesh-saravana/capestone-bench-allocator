@@ -19,6 +19,13 @@ Last updated: 2026-07-27
 - Refresh summary button works and refetches server data.
 - Success/error toasts are shown for import/export actions.
 
+### Skill Tags tab
+- Skill tag list is fetched from backend (`GET /api/settings/skills`).
+- Add skill is wired (`POST /api/settings/skills`).
+- Edit skill is wired (`PUT /api/settings/skills/{id}`).
+- Delete skill is wired (`DELETE /api/settings/skills/{id}`).
+- Refresh action and mutation feedback toasts are working.
+
 ### Notifications tab
 - Toggle controls and frequency selector are interactive.
 - **Save Notifications** stores values in browser `localStorage`.
@@ -28,10 +35,6 @@ Last updated: 2026-07-27
 ### General tab
 - Saved general settings are not yet applied globally to app theme/navigation behavior.
 - Settings are not persisted in backend DB (local browser only).
-
-### Skill Tags tab
-- Add/Edit/Delete actions are currently placeholders.
-- No backend APIs exist yet for skill tag CRUD.
 
 ### Data Management tab
 - Import is currently enabled only for **Candidate Profiles + Interview Scores** dataset.
@@ -44,8 +47,7 @@ Last updated: 2026-07-27
 
 ## Recommended next steps
 
-1. Add backend endpoints for Skill Tags CRUD.
-2. Add backend persistence for General/Notification settings per user.
-3. Add upload handlers for employee/projects/allocations datasets.
-4. Add richer import validation report (invalid rows file + reason per row).
-5. Apply saved settings dynamically in frontend (theme/default landing route/tooltips).
+1. Add backend persistence for General/Notification settings per user.
+2. Add upload handlers for employee/projects/allocations datasets.
+3. Add richer import validation report (invalid rows file + reason per row).
+4. Apply saved settings dynamically in frontend (theme/default landing route/tooltips).

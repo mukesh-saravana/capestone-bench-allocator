@@ -84,6 +84,30 @@ def test_candidate_import_and_summary() -> None:
     assert datasets["candidate_profiles"]["importEnabled"] is True
 
 
+def test_skill_tags_crud() -> None:
+    headers = login_headers()
+    initial = client.get("/api/settings/skills", headers=headers)
+    assert initial.status_code == 200
+    base_count = len(initial.json())
+
+    created = client.post("/api/settings/skills", headers=headers, json={"name": "Go", "category": "Backend"})
+    assert created.status_code == 201
+    created_body = created.json()
+    assert created_body["name"] == "Go"
+    skill_id = created_body["id"]
+
+    updated = client.put(f"/api/settings/skills/{skill_id}", headers=headers, json={"name": "Golang", "category": "Backend"})
+    assert updated.status_code == 200
+    assert updated.json()["name"] == "Golang"
+
+    deleted = client.delete(f"/api/settings/skills/{skill_id}", headers=headers)
+    assert deleted.status_code == 204
+
+    final = client.get("/api/settings/skills", headers=headers)
+    assert final.status_code == 200
+    assert len(final.json()) == base_count
+
+
 def test_chat_query_returns_recommendations() -> None:
     headers = login_headers()
     response = client.post("/api/chat/query", headers=headers, json={"query": "Find a React developer", "strategy": "hybrid"})
