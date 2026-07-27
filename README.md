@@ -46,6 +46,7 @@ The solution has two main parts:
 - `docs/technical-design.md`: selected architecture pattern, stack, and system design
 - `docs/DESIGN-PLAN.md`: detailed UI/UX plan and implementation roadmap
 - `frontend/`: React + Vite + TypeScript application (implemented MVP UI)
+- `backend/`: FastAPI backend API scaffold for auth, chat, recommendations, dashboard, and allocations
 - `frontend/flow.md`: non-technical end-to-end frontend usage and behavior guide
 - `README.md`: project overview and progress
 
@@ -86,8 +87,31 @@ The project has moved from planning into active implementation.
 
 ### In Progress / Next
 
-- Backend API integration for auth, dashboard metrics, recommendations, and assignments
+- Backend API scaffold implemented (`backend/app/main.py`) and ready for frontend integration
 - RAG service hookup for live chat/recommendation responses
 - Persisted data and settings workflows
 
 For a non-technical walkthrough, see: **`frontend/flow.md`**
+
+## Backend Quick Start
+
+From repository root:
+
+```bash
+cd backend
+python -m pip install -r requirements.txt
+python -m uvicorn app.main:app --reload --port 8000
+```
+
+Available MVP endpoints:
+
+- `POST /api/auth/login`
+- `POST /api/auth/logout`
+- `GET /api/auth/me`
+- `POST /api/chat/query`
+- `POST /api/recommendations`
+- `GET /api/dashboard/bench`
+- `GET /api/dashboard/utilization`
+- `GET /api/dashboard/allocations`
+- `POST /api/allocations`
+- `GET /health`
