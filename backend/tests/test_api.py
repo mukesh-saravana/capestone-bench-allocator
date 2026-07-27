@@ -1,6 +1,14 @@
 from __future__ import annotations
 
+import os
+from pathlib import Path
+
 from fastapi.testclient import TestClient
+
+TEST_DB_FILE = Path(__file__).resolve().parent / "test_bench_allocator.db"
+if TEST_DB_FILE.exists():
+    TEST_DB_FILE.unlink()
+os.environ["BACKEND_DATABASE_URL"] = f"sqlite:///{TEST_DB_FILE.as_posix()}"
 
 from app.main import app
 

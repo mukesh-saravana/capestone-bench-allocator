@@ -47,6 +47,8 @@ The solution has two main parts:
 - `docs/DESIGN-PLAN.md`: detailed UI/UX plan and implementation roadmap
 - `frontend/`: React + Vite + TypeScript application (implemented MVP UI)
 - `backend/`: FastAPI backend API scaffold for auth, chat, recommendations, dashboard, and allocations
+- `backend/README.md`: detailed backend setup, tools install, environment, and API flow guide
+- `docs/frontend-backend-integration-readme.md`: step-by-step frontend + backend integration setup
 - `frontend/flow.md`: non-technical end-to-end frontend usage and behavior guide
 - `README.md`: project overview and progress
 
@@ -99,8 +101,18 @@ From repository root:
 
 ```bash
 cd backend
-python -m pip install -r requirements.txt
-python -m uvicorn app.main:app --reload --port 8000
+py -m pip install -r requirements.txt
+py -m uvicorn app.main:app --reload --port 8000
+```
+
+### Backend hardening configuration
+
+- Persistence is now DB-backed through SQLAlchemy.
+- Default local DB (if unset): `sqlite:///./bench_allocator.db`
+- Configure PostgreSQL with:
+
+```bash
+set BACKEND_DATABASE_URL=postgresql+psycopg://<user>:<password>@localhost:5432/bench_allocator
 ```
 
 Available MVP endpoints:
@@ -118,3 +130,8 @@ Available MVP endpoints:
 - `GET /api/dashboard/allocations`
 - `POST /api/allocations`
 - `GET /health`
+
+## Setup Guides
+
+- Backend setup (tools, env, run, testing, API flows): **`backend/README.md`**
+- Frontend + backend integration setup (end-to-end): **`docs/frontend-backend-integration-readme.md`**

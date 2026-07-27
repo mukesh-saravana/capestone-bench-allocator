@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from datetime import date
 from uuid import uuid4
 
@@ -26,18 +27,27 @@ from .models import (
     UtilizationMetrics,
     UtilizationTrendPoint,
 )
+from .settings import get_settings
 from .services import recommend, recommend_from_query
 
-app = FastAPI(title="Capstone Bench Allocator Backend", version="0.1.0")
+settings = get_settings()
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    store.initialize()
+    yield
+
+
+app = FastAPI(title="Capstone Bench Allocator Backend", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[settings.cors_origin],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 def _extract_bearer_token(authorization: str | None) -> str | None:
     if not authorization:
@@ -50,7 +60,7 @@ def _extract_bearer_token(authorization: str | None) -> str | None:
 
 def get_current_user(
     authorization: str | None = Header(default=None),
-    auth_token: str | None = Cookie(default=None),
+    auth_token: str | None = Cookie(default=None, alias=settings.auth_cookie_name),
 ) -> User:
     token = _extract_bearer_token(authorization) or auth_token
     user = store.get_user_by_token(token)
@@ -69,22 +79,24 @@ def login(payload: LoginRequest, response: Response) -> LoginResponse:
     if len(payload.password) < 4:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Password must be at least 4 characters")
 
-    user = store.users.get(payload.email)
+    user = store.get_user_by_email(payload.email)
     if not user:
         user = User(id=f"usr-{uuid4()}", name=payload.email.split("@")[0].title(), email=payload.email, role="resource_manager")
-        store.users[payload.email] = user
+        user = store.save_user(user)
 
     token = store.issue_token(payload.email)
-    response.set_cookie("auth_token", token, httponly=True, samesite="lax")
+    response.set_cookie(settings.auth_cookie_name, token, httponly=True, samesite="lax")
     return LoginResponse(token=token, user=user)
 
 
 @app.post("/api/auth/logout")
-def logout(response: Response, authorization: str | None = Header(default=None), auth_token: str | None = Cookie(default=None)) -> dict[str, str]:
+def logout(
+    response: Response, authorization: str | None = Header(default=None), auth_token: str | None = Cookie(default=None, alias=settings.auth_cookie_name)
+) -> dict[str, str]:
     token = _extract_bearer_token(authorization) or auth_token
     if token:
         store.revoke_token(token)
-    response.delete_cookie("auth_token")
+    response.delete_cookie(settings.auth_cookie_name)
     return {"status": "ok"}
 
 
@@ -207,10 +219,13 @@ def create_allocation(payload: AssignRequest, current_user: User = Depends(get_c
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Employee not found")
     if payload.projectNeedId not in store.project_needs:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project need not found")
-    return store.create_allocation(
-        employee_id=payload.employeeId,
-        project_need_id=payload.projectNeedId,
-        role=payload.role,
-        start_date=payload.startDate,
-        notes=payload.notes,
-    )
+    try:
+        return store.create_allocation(
+            employee_id=payload.employeeId,
+            project_need_id=payload.projectNeedId,
+            role=payload.role,
+            start_date=payload.startDate,
+            notes=payload.notes,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
