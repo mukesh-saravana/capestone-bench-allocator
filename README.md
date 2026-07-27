@@ -108,6 +108,9 @@ Available MVP endpoints:
 - `POST /api/auth/login`
 - `POST /api/auth/logout`
 - `GET /api/auth/me`
+- `GET /api/employees`
+- `GET /api/project-needs`
+- `GET /api/allocation-history`
 - `POST /api/chat/query`
 - `POST /api/recommendations`
 - `GET /api/dashboard/bench`

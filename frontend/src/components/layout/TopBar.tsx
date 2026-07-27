@@ -110,7 +110,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
           </Tooltip>
 
           <Tooltip title="Sign out">
-            <IconButton size="small" onClick={logout} sx={{ color: tokens.colors.textTertiary, '&:hover': { color: tokens.colors.danger, bgcolor: `${tokens.colors.danger}10` } }}>
+            <IconButton size="small" onClick={() => { void logout(); }} sx={{ color: tokens.colors.textTertiary, '&:hover': { color: tokens.colors.danger, bgcolor: `${tokens.colors.danger}10` } }}>
               <LogoutIcon fontSize="small" />
             </IconButton>
           </Tooltip>
@@ -119,4 +119,3 @@ export function TopBar({ onMenuClick }: TopBarProps) {
     </AppBar>
   );
 }
-

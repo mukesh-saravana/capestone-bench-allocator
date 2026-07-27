@@ -9,13 +9,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from .data import store
 from .models import (
     AllocationsSummary,
+    AllocationHistory,
     AssignRequest,
     BenchMetrics,
     BenchTrendPoint,
     ChatQueryRequest,
     ChatQueryResponse,
+    Employee,
     LoginRequest,
     LoginResponse,
+    ProjectNeed,
     RecommendationRequest,
     RecommendationResponse,
     User,
@@ -88,6 +91,24 @@ def logout(response: Response, authorization: str | None = Header(default=None),
 @app.get("/api/auth/me", response_model=User)
 def me(current_user: User = Depends(get_current_user)) -> User:
     return current_user
+
+
+@app.get("/api/employees", response_model=list[Employee])
+def list_employees(current_user: User = Depends(get_current_user)) -> list[Employee]:
+    _ = current_user
+    return list(store.employees.values())
+
+
+@app.get("/api/project-needs", response_model=list[ProjectNeed])
+def list_project_needs(current_user: User = Depends(get_current_user)) -> list[ProjectNeed]:
+    _ = current_user
+    return list(store.project_needs.values())
+
+
+@app.get("/api/allocation-history", response_model=list[AllocationHistory])
+def list_allocation_history(current_user: User = Depends(get_current_user)) -> list[AllocationHistory]:
+    _ = current_user
+    return store.allocations
 
 
 @app.post("/api/chat/query", response_model=ChatQueryResponse)

@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Box, Paper, Typography, TextField, IconButton, Chip, Divider,
   CircularProgress, Card, CardContent,
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import type { ChatMessage, Recommendation } from '../../types';
-import { MOCK_RECOMMENDATIONS } from '../../lib/mockData';
+import { getBenchMetrics, getProjectNeeds, getUtilizationMetrics, queryChat } from '../../lib/api';
+import { useToast } from '../../store/ToastContext';
 import { tokens } from '../../theme';
 import { CandidateCard } from '../recommendations/CandidateCard';
 
@@ -15,21 +17,6 @@ const SUGGESTED_PROMPTS = [
   'Show underutilized team members',
   'Find a DevOps engineer',
 ];
-
-function buildMockReply(query: string): ChatMessage {
-  const lower = query.toLowerCase();
-  const hasRecommendations = lower.includes('react') || lower.includes('find') || lower.includes('match') || lower.includes('recommend');
-
-  return {
-    id: `msg-${Date.now()}`,
-    role: 'assistant',
-    content: hasRecommendations
-      ? `Based on available skills and bench data, here are the top candidates for your query. John Doe ranks highest with strong React and TypeScript skills and is currently available.`
-      : `I found 4 engineers currently on bench. The longest-waiting is John Doe (bench since Jul 1). Overall team utilization is at 76%, with the Backend department fully allocated.`,
-    recommendations: hasRecommendations ? MOCK_RECOMMENDATIONS : undefined,
-    timestamp: new Date().toISOString(),
-  };
-}
 
 function MessageBubble({ msg, onAssign }: { msg: ChatMessage; onAssign?: (r: Recommendation) => void }) {
   const isUser = msg.role === 'user';
@@ -83,6 +70,11 @@ export function ChatPage({ onAssign }: { onAssign?: (r: Recommendation) => void 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [department, setDepartment] = useState('All');
+  const { showToast } = useToast();
+  const benchQuery = useQuery({ queryKey: ['dashboard', 'bench'], queryFn: getBenchMetrics });
+  const utilizationQuery = useQuery({ queryKey: ['dashboard', 'utilization'], queryFn: getUtilizationMetrics });
+  const projectNeedsQuery = useQuery({ queryKey: ['project-needs'], queryFn: getProjectNeeds });
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -98,11 +90,26 @@ export function ChatPage({ onAssign }: { onAssign?: (r: Recommendation) => void 
     setInput('');
     setLoading(true);
 
-    // Simulate API latency
-    await new Promise((r) => setTimeout(r, 1200));
-    const reply = buildMockReply(text);
-    setMessages((prev) => [...prev, reply]);
-    setLoading(false);
+    try {
+      const response = await queryChat({
+        query: text,
+        strategy: 'hybrid',
+        filters: department === 'All' ? undefined : { department },
+      });
+      const reply: ChatMessage = {
+        id: response.messageId,
+        role: 'assistant',
+        content: response.answer,
+        recommendations: response.recommendations,
+        evidenceSnippets: response.evidenceSnippets,
+        timestamp: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, reply]);
+    } catch {
+      showToast('Unable to fetch assistant response. Please try again.', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -159,9 +166,9 @@ export function ChatPage({ onAssign }: { onAssign?: (r: Recommendation) => void 
         <Paper sx={{ p: 2 }}>
           <Typography variant="h3" sx={{ mb: 1.5 }}>Relevant Data</Typography>
           {[
-            { label: 'React Skills Available', value: '3 engineers' },
-            { label: 'Currently on Bench', value: '4 engineers' },
-            { label: 'Open Project Needs', value: '3 roles' },
+            { label: 'Currently on Bench', value: `${benchQuery.data?.totalOnBench ?? '—'} engineers` },
+            { label: 'Open Project Needs', value: `${projectNeedsQuery.data?.length ?? '—'} roles` },
+            { label: 'Average Utilization', value: `${utilizationQuery.data?.averagePct ?? '—'}%` },
           ].map(({ label, value }) => (
             <Card key={label} sx={{ mb: 1, bgcolor: tokens.colors.neutral }}>
               <CardContent sx={{ py: '10px !important', px: 2 }}>
@@ -177,8 +184,8 @@ export function ChatPage({ onAssign }: { onAssign?: (r: Recommendation) => void 
           <Typography variant="body2" sx={{ mb: 1 }}>Department</Typography>
           <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
             {['All', 'Frontend', 'Backend', 'Platform', 'Data'].map((d) => (
-              <Chip key={d} label={d} size="small" variant={d === 'All' ? 'filled' : 'outlined'}
-                color={d === 'All' ? 'primary' : 'default'} clickable />
+              <Chip key={d} label={d} size="small" variant={d === department ? 'filled' : 'outlined'}
+                color={d === department ? 'primary' : 'default'} clickable onClick={() => setDepartment(d)} />
             ))}
           </Box>
         </Paper>

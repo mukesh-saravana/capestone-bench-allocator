@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { Box, Typography, TextField, MenuItem, InputAdornment, Button } from '@mui/material';
+import { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Box, Typography, TextField, MenuItem, InputAdornment, Button, CircularProgress } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import type { Recommendation } from '../../types';
-import { MOCK_RECOMMENDATIONS } from '../../lib/mockData';
+import { getAllocationHistory, getProjectNeeds, getRecommendations } from '../../lib/api';
 import { CandidateCard } from './CandidateCard';
 import { EmptyState } from '../../components/common/EmptyState';
 import { ProfileModal } from './ProfileModal';
@@ -15,11 +16,31 @@ export function RecommendationsPage() {
   const [search, setSearch] = useState('');
   const [dept, setDept] = useState('All');
   const [sort, setSort] = useState('relevance');
+  const [projectNeedId, setProjectNeedId] = useState('');
   const [profileTarget, setProfileTarget] = useState<Recommendation | null>(null);
   const [assignTarget, setAssignTarget] = useState<Recommendation | null>(null);
+  const projectNeedsQuery = useQuery({ queryKey: ['project-needs'], queryFn: getProjectNeeds });
+  const allocationsQuery = useQuery({ queryKey: ['allocation-history'], queryFn: getAllocationHistory });
 
-  const filtered = MOCK_RECOMMENDATIONS
-    .filter((r) => {
+  useEffect(() => {
+    if (!projectNeedId && projectNeedsQuery.data && projectNeedsQuery.data.length > 0) {
+      setProjectNeedId(projectNeedsQuery.data[0].id);
+    }
+  }, [projectNeedId, projectNeedsQuery.data]);
+
+  const recommendationsQuery = useQuery({
+    queryKey: ['recommendations', projectNeedId, dept],
+    queryFn: () => getRecommendations({
+      projectNeedId: projectNeedId || undefined,
+      department: dept === 'All' ? undefined : dept,
+      strategy: 'hybrid',
+    }),
+  });
+
+  const filtered = useMemo(() => {
+    const items = recommendationsQuery.data?.recommendations ?? [];
+    return items
+      .filter((r) => {
       const matchSearch = r.employee.name.toLowerCase().includes(search.toLowerCase()) ||
         r.employee.skills.some((s) => s.skill.name.toLowerCase().includes(search.toLowerCase()));
       const matchDept = dept === 'All' || r.employee.department === dept;
@@ -30,11 +51,39 @@ export function RecommendationsPage() {
       if (sort === 'name') return a.employee.name.localeCompare(b.employee.name);
       return a.rank - b.rank;
     });
+  }, [recommendationsQuery.data, search, dept, sort]);
+
+  const projectNeeds = projectNeedsQuery.data ?? [];
+  const selectedNeed = projectNeeds.find((need) => need.id === projectNeedId) ?? null;
+  const loading = projectNeedsQuery.isLoading || recommendationsQuery.isLoading || allocationsQuery.isLoading;
+  const hasError = projectNeedsQuery.isError || recommendationsQuery.isError || allocationsQuery.isError;
+
+  if (loading) {
+    return (
+      <Box sx={{ py: 8, display: 'flex', justifyContent: 'center' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <EmptyState
+        title="Unable to load recommendations"
+        description="Please check backend connectivity and try again."
+      />
+    );
+  }
 
   return (
     <Box>
       {/* Filter Bar */}
       <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+        <TextField select label="Project Need" value={projectNeedId} onChange={(e) => setProjectNeedId(e.target.value)} sx={{ minWidth: 260 }}>
+          {projectNeeds.map((need) => (
+            <MenuItem key={need.id} value={need.id}>{need.projectName} · {need.roleTitle}</MenuItem>
+          ))}
+        </TextField>
         <TextField
             placeholder="Search by name or skill"
             value={search}
@@ -76,6 +125,7 @@ export function RecommendationsPage() {
       {profileTarget && (
         <ProfileModal
           recommendation={profileTarget}
+          allocations={allocationsQuery.data ?? []}
           onClose={() => setProfileTarget(null)}
           onAssign={(r) => { setProfileTarget(null); setAssignTarget(r); }}
         />
@@ -83,6 +133,7 @@ export function RecommendationsPage() {
       {assignTarget && (
         <AssignmentModal
           recommendation={assignTarget}
+          projectNeed={selectedNeed}
           onClose={() => setAssignTarget(null)}
           onBack={() => { setAssignTarget(null); setProfileTarget(assignTarget); }}
         />

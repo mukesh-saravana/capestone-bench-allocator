@@ -42,6 +42,19 @@ def test_recommendations_rank_react_candidate() -> None:
     assert top["rank"] == 1
 
 
+def test_reference_data_endpoints() -> None:
+    headers = login_headers()
+    employees = client.get("/api/employees", headers=headers)
+    needs = client.get("/api/project-needs", headers=headers)
+    history = client.get("/api/allocation-history", headers=headers)
+    assert employees.status_code == 200
+    assert needs.status_code == 200
+    assert history.status_code == 200
+    assert len(employees.json()) >= 1
+    assert len(needs.json()) >= 1
+    assert len(history.json()) >= 1
+
+
 def test_chat_query_returns_recommendations() -> None:
     headers = login_headers()
     response = client.post("/api/chat/query", headers=headers, json={"query": "Find a React developer", "strategy": "hybrid"})
