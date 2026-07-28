@@ -71,6 +71,14 @@ Based on common current repository/documentation conventions:
 2. Historical snapshotting if more accurate trend charts are needed
 3. Production hardening (migrations, monitoring, stronger RBAC)
 
+## New Components Added (post-initial MVP)
+
+- `frontend/src/components/common/DetailDrawer.tsx` — reusable right-side drawer shell (gradient header, back/close, icon badge)
+- `frontend/src/features/dashboard/DashboardDrawer.tsx` — dashboard drill-down drawer (bench, utilization, allocations, employee/project views)
+- `MetricCard` now accepts `onClick` — renders pointer cursor and "View details" affordance
+- `CandidateCard` whole-card click triggers profile view (button actions stop propagation)
+- `ProfileModal` redesigned with gradient header, score circle, "Best Match" chip, proficiency bars
+
 ## Working Agreements for Future Prompts
 
 - Preserve chosen architecture unless explicitly changed

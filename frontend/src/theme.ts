@@ -23,14 +23,23 @@ const tokens = {
     sidebarBg: '#0F172A',
     sidebarText: '#94A3B8',
     sidebarActiveText: '#FFFFFF',
+    // ai chat
+    aiSurface: '#F8FAFF',
+    userBubble: '#4361EE',
   },
   gradients: {
     primary: 'linear-gradient(135deg, #4361EE 0%, #7B5EA7 100%)',
+    primarySoft: 'linear-gradient(135deg, #EEF1FF 0%, #F5F0FF 100%)',
     success: 'linear-gradient(135deg, #06D6A0 0%, #0CB87C 100%)',
+    successSoft: 'linear-gradient(135deg, #ECFDF5 0%, #F0FDF8 100%)',
     warning: 'linear-gradient(135deg, #F9A825 0%, #E65100 100%)',
+    warningSoft: 'linear-gradient(135deg, #FFFBEB 0%, #FFF7ED 100%)',
     danger: 'linear-gradient(135deg, #EF233C 0%, #C9002C 100%)',
+    dangerSoft: 'linear-gradient(135deg, #FEF2F2 0%, #FFF1F2 100%)',
     sidebar: 'linear-gradient(180deg, #0F172A 0%, #1E293B 100%)',
     card: 'linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,1) 100%)',
+    mesh: 'radial-gradient(at 40% 20%, #4361EE18 0px, transparent 50%), radial-gradient(at 80% 0%, #7B5EA715 0px, transparent 50%), radial-gradient(at 0% 50%, #06D6A012 0px, transparent 50%)',
+    aiMessage: 'linear-gradient(135deg, #F8FAFF 0%, #EEF1FF 100%)',
   },
   shadows: {
     xs: '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
@@ -39,12 +48,14 @@ const tokens = {
     lg: '0 20px 25px -5px rgba(0,0,0,0.10), 0 10px 10px -5px rgba(0,0,0,0.04)',
     colored: (color: string) => `0 8px 20px -4px ${color}40`,
     glow: (color: string) => `0 0 0 3px ${color}25`,
+    float: '0 8px 32px rgba(67,97,238,0.12), 0 2px 8px rgba(0,0,0,0.06)',
   },
   borderRadius: {
     sm: 8,
     md: 12,
     lg: 16,
     xl: 24,
+    bubble: 20,
   },
   motion: {
     duration: {
@@ -209,6 +220,81 @@ const theme = createTheme({
             borderBottom: `1px solid ${tokens.colors.border}`,
           },
         },
+      },
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          borderRadius: tokens.borderRadius.lg,
+          boxShadow: tokens.shadows.lg,
+          border: `1px solid ${tokens.colors.border}`,
+          backgroundImage: 'none',
+          backdropFilter: 'blur(20px)',
+        },
+        root: {
+          '& .MuiBackdrop-root': {
+            backdropFilter: 'blur(4px)',
+            backgroundColor: 'rgba(15,23,42,0.5)',
+          },
+        },
+      },
+    },
+    MuiDialogTitle: {
+      styleOverrides: {
+        root: {
+          fontWeight: 700,
+          fontSize: '1.0625rem',
+          color: tokens.colors.text,
+          paddingBottom: 8,
+        },
+      },
+    },
+    MuiAlert: {
+      styleOverrides: {
+        root: {
+          borderRadius: tokens.borderRadius.sm,
+          border: '1px solid',
+          fontSize: '0.875rem',
+        },
+      },
+    },
+    MuiLinearProgress: {
+      styleOverrides: {
+        root: { borderRadius: 100, backgroundColor: tokens.colors.neutralDark },
+        bar: { borderRadius: 100, background: tokens.gradients.primary },
+      },
+    },
+    MuiSkeleton: {
+      styleOverrides: {
+        root: { borderRadius: tokens.borderRadius.sm },
+      },
+    },
+    MuiTooltip: {
+      styleOverrides: {
+        tooltip: {
+          backgroundColor: tokens.colors.sidebarBg,
+          color: '#CBD5E1',
+          fontSize: '0.75rem',
+          borderRadius: tokens.borderRadius.sm,
+          padding: '6px 12px',
+          boxShadow: tokens.shadows.md,
+        },
+        arrow: { color: tokens.colors.sidebarBg },
+      },
+    },
+    MuiDivider: {
+      styleOverrides: {
+        root: { borderColor: tokens.colors.border },
+      },
+    },
+    MuiSelect: {
+      styleOverrides: {
+        root: { borderRadius: tokens.borderRadius.sm },
+      },
+    },
+    MuiBadge: {
+      styleOverrides: {
+        badge: { fontWeight: 700, fontSize: '0.6rem' },
       },
     },
   },

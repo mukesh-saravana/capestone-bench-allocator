@@ -24,6 +24,7 @@ export function CandidateCard({ recommendation: r, compact = false, onViewProfil
 
   return (
     <Box
+      onClick={() => !compact && onViewProfile?.(r)}
       sx={{
         display: 'flex', alignItems: compact ? 'flex-start' : 'center', gap: 2,
         p: compact ? 1.5 : 2.5,
@@ -35,8 +36,12 @@ export function CandidateCard({ recommendation: r, compact = false, onViewProfil
         transition: 'all 200ms ease',
         position: 'relative',
         overflow: 'hidden',
-        '&:hover': { boxShadow: tokens.shadows.md, transform: 'translateY(-1px)' },
-        // Top rank glow stripe
+        cursor: !compact && onViewProfile ? 'pointer' : 'default',
+        '&:hover': !compact && onViewProfile ? {
+          boxShadow: tokens.shadows.md,
+          transform: 'translateY(-2px)',
+          borderColor: r.rank === 1 ? `${tokens.colors.success}60` : `${tokens.colors.primary}30`,
+        } : { boxShadow: tokens.shadows.md, transform: 'translateY(-1px)' },
         '&::before': r.rank === 1 ? {
           content: '""', position: 'absolute', top: 0, left: 0, right: 0, height: 3,
           background: tokens.gradients.success,
@@ -104,7 +109,7 @@ export function CandidateCard({ recommendation: r, compact = false, onViewProfil
 
       {/* Actions */}
       {!compact && (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, flexShrink: 0 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
           <Button size="small" variant="outlined"
             sx={{ fontSize: '0.75rem', px: 1.5, borderColor: tokens.colors.border, color: tokens.colors.text, '&:hover': { borderColor: tokens.colors.primary, color: tokens.colors.primary } }}
             onClick={() => onViewProfile?.(r)}>

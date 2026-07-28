@@ -1,26 +1,65 @@
+import { useState } from 'react';
 import { Grid, Box, Typography, Paper, Chip, Avatar } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
-import { ResponsiveContainer, LineChart, Line, AreaChart, Area, Tooltip as ReTooltip } from 'recharts';
+import {
+  ResponsiveContainer, LineChart, Line, AreaChart, Area, Tooltip as ReTooltip,
+  BarChart, Bar, XAxis, YAxis, Cell, Tooltip as BarTooltip,
+} from 'recharts';
+import { motion } from 'framer-motion';
 import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import WorkOutlineIcon from '@mui/icons-material/WorkOutlined';
 import SpeedOutlinedIcon from '@mui/icons-material/SpeedOutlined';
 import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
+import WavingHandOutlinedIcon from '@mui/icons-material/WavingHandOutlined';
 import { MetricCard } from '../../components/common/MetricCard';
-import { ProgressBar } from '../../components/common/ProgressBar';
 import { PriorityBadge } from '../../components/common/Badges';
 import { EmptyState } from '../../components/common/EmptyState';
 import { SkeletonCard, SkeletonTable } from '../../components/common/SkeletonCard';
-import { getAllocationsSummary, getBenchMetrics, getEmployees, getProjectNeeds, getUtilizationMetrics } from '../../lib/api';
+import { getAllocationsSummary, getAllocationHistory, getBenchMetrics, getEmployees, getProjectNeeds, getUtilizationMetrics } from '../../lib/api';
+import { useAuth } from '../../store/AuthContext';
 import { tokens } from '../../theme';
+import { DashboardDrawer, type DashboardPanel } from './DashboardDrawer';
+import type { Employee, ProjectNeed } from '../../types';
+
+const MotionBox = motion(Box);
+const MotionGrid = motion(Grid);
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (i: number) => ({
+    opacity: 1, y: 0,
+    transition: { delay: i * 0.08, duration: 0.4, ease: 'easeOut' as const },
+  }),
+};
+
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
+function DeptChartTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <Box sx={{ bgcolor: tokens.colors.sidebarBg, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 1.5, px: 1.5, py: 0.875, boxShadow: tokens.shadows.md }}>
+      {label && <Typography sx={{ color: 'rgba(148,163,184,0.8)', fontSize: '0.7rem' }}>{label}</Typography>}
+      <Typography sx={{ color: '#fff', fontSize: '0.875rem', fontWeight: 700 }}>{payload[0].value}%</Typography>
+    </Box>
+  );
+}
 
 export function DashboardPage() {
+  const { user } = useAuth();
+  const [drawerPanel, setDrawerPanel] = useState<DashboardPanel | null>(null);
   const benchQuery = useQuery({ queryKey: ['dashboard', 'bench'], queryFn: getBenchMetrics });
   const utilizationQuery = useQuery({ queryKey: ['dashboard', 'utilization'], queryFn: getUtilizationMetrics });
   const allocationsQuery = useQuery({ queryKey: ['dashboard', 'allocations'], queryFn: getAllocationsSummary });
   const projectNeedsQuery = useQuery({ queryKey: ['project-needs'], queryFn: getProjectNeeds });
   const employeesQuery = useQuery({ queryKey: ['employees'], queryFn: getEmployees });
+  const allocationHistoryQuery = useQuery({ queryKey: ['allocation-history'], queryFn: getAllocationHistory });
 
   const loading = benchQuery.isLoading
     || utilizationQuery.isLoading
@@ -55,20 +94,77 @@ export function DashboardPage() {
   const openRoles = projectNeeds.filter((need) => need.status === 'open').reduce((sum, need) => sum + need.openSlots, 0);
   const allocatedThisMonth = allocationsSummary?.activeAllocations ?? 0;
 
+  const firstName = user?.name?.split(' ')[0] ?? 'there';
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
   return (
     <Box>
+      {/* ── Welcome Banner ── */}
+      <MotionBox
+        initial={{ opacity: 0, y: -16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        sx={{
+          mb: 3, p: 3, borderRadius: `${tokens.borderRadius.lg}px`,
+          background: `linear-gradient(135deg, ${tokens.colors.sidebarBg} 0%, #1E3A8A 60%, #1E293B 100%)`,
+          position: 'relative', overflow: 'hidden',
+          boxShadow: tokens.shadows.float,
+        }}
+      >
+        {/* Decorative blobs */}
+        <Box sx={{ position: 'absolute', top: -40, right: -40, width: 200, height: 200, borderRadius: '50%', background: `${tokens.colors.primary}20`, pointerEvents: 'none' }} />
+        <Box sx={{ position: 'absolute', bottom: -30, right: 120, width: 140, height: 140, borderRadius: '50%', background: `${tokens.colors.success}15`, pointerEvents: 'none' }} />
+
+        <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
+          <Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+              <WavingHandOutlinedIcon sx={{ color: '#FFD700', fontSize: 22 }} />
+              <Typography sx={{ fontSize: '0.8rem', color: 'rgba(148,163,184,0.9)', fontWeight: 500 }}>{today}</Typography>
+            </Box>
+            <Typography sx={{ fontSize: '1.5rem', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.03em', lineHeight: 1.2 }}>
+              {getGreeting()}, {firstName}!
+            </Typography>
+            <Typography sx={{ fontSize: '0.875rem', color: 'rgba(148,163,184,0.8)', mt: 0.5 }}>
+              Here's your team resource overview for today.
+            </Typography>
+          </Box>
+
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+            {[
+              { label: 'On Bench', value: String(benchCount), color: tokens.colors.primaryLight },
+              { label: 'Utilization', value: `${utilPct}%`, color: tokens.colors.success },
+              { label: 'Open Roles', value: String(openRoles), color: '#F472B6' },
+            ].map(({ label, value, color }) => (
+              <Box key={label} sx={{
+                textAlign: 'center', px: 2, py: 1.25,
+                bgcolor: 'rgba(255,255,255,0.07)', borderRadius: 2,
+                border: '1px solid rgba(255,255,255,0.1)',
+                backdropFilter: 'blur(8px)',
+                minWidth: 72,
+              }}>
+                <Typography sx={{ fontSize: '1.375rem', fontWeight: 800, color, lineHeight: 1, letterSpacing: '-0.03em' }}>
+                  {loading ? '—' : value}
+                </Typography>
+                <Typography sx={{ fontSize: '0.68rem', color: 'rgba(148,163,184,0.7)', fontWeight: 500, mt: 0.25 }}>{label}</Typography>
+              </Box>
+            ))}
+          </Box>
+        </Box>
+      </MotionBox>
+
       {/* ── Row 1: 4 summary cards ── */}
       <Grid container spacing={2.5} sx={{ mb: 2.5 }}>
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          {loading ? <SkeletonCard height={140} /> : (
-            <MetricCard
-              title="On Bench"
-              value={benchCount}
-              subtitle="Engineers available"
-              accent="primary"
-              icon={<GroupsOutlinedIcon sx={{ fontSize: 20 }} />}
-              trend={{ value: -2, label: 'vs last wk' }}
-            >
+        {[
+          {
+            idx: 0,
+            title: 'On Bench',
+            value: benchCount,
+            subtitle: 'Engineers available',
+            accent: 'primary' as const,
+            icon: <GroupsOutlinedIcon sx={{ fontSize: 20 }} />,
+            trend: { value: -2, label: 'vs last wk' },
+            panelKind: { kind: 'bench' } as DashboardPanel,
+            chart: (
               <Box sx={{ height: 36 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={benchMetrics?.trend ?? []}>
@@ -77,37 +173,38 @@ export function DashboardPage() {
                   </LineChart>
                 </ResponsiveContainer>
               </Box>
-            </MetricCard>
-          )}
-        </Grid>
-
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          {loading ? <SkeletonCard height={140} /> : (
-            <MetricCard
-              title="Utilization"
-              value={`${utilPct}%`}
-              subtitle="Team average"
-              accent={utilPct >= 80 ? 'success' : 'warning'}
-              icon={<SpeedOutlinedIcon sx={{ fontSize: 20 }} />}
-              trend={{ value: 3, label: 'vs last wk' }}
-            >
-              <Box sx={{ mt: 1 }}>
-                <ProgressBar value={utilPct} showLabel height={6} />
+            ),
+          },
+          {
+            idx: 1,
+            title: 'Utilization',
+            value: `${utilPct}%`,
+            subtitle: 'Team average',
+            accent: (utilPct >= 80 ? 'success' : 'warning') as 'success' | 'warning',
+            icon: <SpeedOutlinedIcon sx={{ fontSize: 20 }} />,
+            trend: { value: 3, label: 'vs last wk' },
+            panelKind: { kind: 'utilization' } as DashboardPanel,
+            chart: (
+              <Box sx={{ height: 36 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={utilizationMetrics?.trend ?? []}>
+                    <Line type="monotone" dataKey="pct" stroke={utilPct >= 80 ? tokens.colors.success : tokens.colors.warning} strokeWidth={2} dot={false} />
+                    <ReTooltip contentStyle={{ fontSize: 11 }} />
+                  </LineChart>
+                </ResponsiveContainer>
               </Box>
-            </MetricCard>
-          )}
-        </Grid>
-
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          {loading ? <SkeletonCard height={140} /> : (
-            <MetricCard
-              title="Open Roles"
-              value={openRoles}
-              subtitle="Across all projects"
-              accent="danger"
-              icon={<WorkOutlineIcon sx={{ fontSize: 20 }} />}
-              trend={{ value: 1, label: 'new today' }}
-            >
+            ),
+          },
+          {
+            idx: 2,
+            title: 'Open Roles',
+            value: openRoles,
+            subtitle: 'Across all projects',
+            accent: 'danger' as const,
+            icon: <WorkOutlineIcon sx={{ fontSize: 20 }} />,
+            trend: { value: 1, label: 'new today' },
+            panelKind: { kind: 'roles' } as DashboardPanel,
+            chart: (
               <Box sx={{ height: 36 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={benchMetrics?.trend ?? []}>
@@ -115,26 +212,44 @@ export function DashboardPage() {
                   </AreaChart>
                 </ResponsiveContainer>
               </Box>
-            </MetricCard>
-          )}
-        </Grid>
-
-        <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
-          {loading ? <SkeletonCard height={140} /> : (
-            <MetricCard
-              title="Active Allocations"
-              value={allocatedThisMonth}
-              subtitle="Ongoing this month"
-              accent="success"
-              icon={<TrendingUpIcon sx={{ fontSize: 20 }} />}
-              trend={{ value: 12, label: 'vs last mo' }}
-            />
-          )}
-        </Grid>
+            ),
+          },
+          {
+            idx: 3,
+            title: 'Active Allocations',
+            value: allocatedThisMonth,
+            subtitle: 'Ongoing this month',
+            accent: 'success' as const,
+            icon: <TrendingUpIcon sx={{ fontSize: 20 }} />,
+            trend: { value: 12, label: 'vs last mo' },
+            panelKind: { kind: 'allocations' } as DashboardPanel,
+            chart: null,
+          },
+        ].map(({ idx, title, value, subtitle, accent, icon, trend, panelKind, chart }) => (
+          <MotionGrid
+            key={title}
+            size={{ xs: 12, sm: 6, lg: 3 }}
+            custom={idx}
+            variants={cardVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            {loading ? <SkeletonCard height={140} /> : (
+              <MetricCard title={title} value={value} subtitle={subtitle} accent={accent} icon={icon} trend={trend} onClick={() => setDrawerPanel(panelKind)}>
+                {chart}
+              </MetricCard>
+            )}
+          </MotionGrid>
+        ))}
       </Grid>
 
       {/* ── Row 2: Projects table + Utilization by dept ── */}
-      <Grid container spacing={2.5} sx={{ mb: 2.5 }}>
+      <MotionBox
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.35, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <Grid container spacing={2.5} sx={{ mb: 2.5 }}>
         <Grid size={{ xs: 12, lg: 7 }}>
           <Paper sx={{ overflow: 'hidden' }}>
             <Box sx={{ px: 2.5, py: 2, borderBottom: `1px solid ${tokens.colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -150,12 +265,16 @@ export function DashboardPage() {
             ) : (
               <Box>
                 {projectNeeds.map((need, i) => (
-                  <Box key={need.id} sx={{
-                    px: 2.5, py: 1.75, display: 'flex', alignItems: 'center', gap: 2,
-                    borderBottom: i < projectNeeds.length - 1 ? `1px solid ${tokens.colors.border}` : 'none',
-                    transition: 'background 150ms ease',
-                    '&:hover': { bgcolor: tokens.colors.neutral },
-                  }}>
+                  <Box key={need.id}
+                    onClick={() => setDrawerPanel({ kind: 'project', need: need as ProjectNeed })}
+                    sx={{
+                      px: 2.5, py: 1.75, display: 'flex', alignItems: 'center', gap: 2,
+                      borderBottom: i < projectNeeds.length - 1 ? `1px solid ${tokens.colors.border}` : 'none',
+                      cursor: 'pointer',
+                      transition: 'background 150ms ease',
+                      '&:hover': { bgcolor: tokens.colors.neutral },
+                      '&:active': { bgcolor: tokens.colors.neutralDark },
+                    }}>
                     <Box sx={{
                       width: 40, height: 40, borderRadius: 1.5, flexShrink: 0,
                       background: [`${tokens.colors.primary}20`, `${tokens.colors.success}20`, `${tokens.colors.warning}20`][i % 3],
@@ -187,32 +306,58 @@ export function DashboardPage() {
           </Paper>
         </Grid>
 
-        {/* Utilization by department */}
+        {/* Utilization by department — recharts BarChart, each bar clickable */}
         <Grid size={{ xs: 12, lg: 5 }}>
           <Paper sx={{ height: '100%' }}>
             <Box sx={{ px: 2.5, py: 2, borderBottom: `1px solid ${tokens.colors.border}` }}>
               <Typography sx={{ fontWeight: 700, fontSize: '0.9375rem', color: tokens.colors.text }}>Utilization by Dept</Typography>
-              <Typography variant="body2">Current allocation rates</Typography>
+              <Typography variant="body2">Click a bar to explore the team</Typography>
             </Box>
-            <Box sx={{ p: 2.5 }}>
-              {(utilizationMetrics?.byDepartment ?? []).map(({ department, pct }) => (
-                <Box key={department} sx={{ mb: 2.5, '&:last-child': { mb: 0 } }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.75 }}>
-                    <Typography sx={{ fontSize: '0.875rem', fontWeight: 500, color: tokens.colors.text }}>{department}</Typography>
-                    <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, color: pct >= 80 ? tokens.colors.success : tokens.colors.warning }}>
-                      {pct}%
-                    </Typography>
-                  </Box>
-                  <ProgressBar value={pct} height={8} />
+            <Box sx={{ p: 2, pt: 2.5 }}>
+              {loading ? (
+                <Box sx={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Typography variant="body2">Loading…</Typography>
                 </Box>
-              ))}
+              ) : (
+                <Box sx={{ height: Math.max((utilizationMetrics?.byDepartment.length ?? 0) * 52, 100) }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={utilizationMetrics?.byDepartment ?? []}
+                      layout="vertical"
+                      margin={{ left: 0, right: 36, top: 4, bottom: 0 }}
+                    >
+                      <XAxis type="number" domain={[0, 100]} hide />
+                      <YAxis
+                        type="category" dataKey="department" width={76}
+                        tick={{ fontSize: 12, fill: tokens.colors.textSecondary }}
+                        axisLine={false} tickLine={false}
+                      />
+                      <BarTooltip content={<DeptChartTooltip />} cursor={{ fill: `${tokens.colors.primary}08` }} />
+                      <Bar
+                        dataKey="pct" radius={[0, 6, 6, 0]} cursor="pointer"
+                        onClick={(d: { department: string }) => setDrawerPanel({ kind: 'dept', department: d.department })}
+                      >
+                        {(utilizationMetrics?.byDepartment ?? []).map((entry) => (
+                          <Cell key={entry.department} fill={entry.pct >= 80 ? tokens.colors.success : tokens.colors.primary} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Box>
+              )}
             </Box>
           </Paper>
         </Grid>
       </Grid>
+      </MotionBox>
 
       {/* ── Row 3: Recent Allocations + Bench list ── */}
-      <Grid container spacing={2.5}>
+      <MotionBox
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.48, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <Grid container spacing={2.5}>
         <Grid size={{ xs: 12, lg: 7 }}>
           <Paper>
             <Box sx={{ px: 2.5, py: 2, borderBottom: `1px solid ${tokens.colors.border}` }}>
@@ -223,11 +368,17 @@ export function DashboardPage() {
               <EmptyState title="No allocations yet." description="Upload data to get started." sx={{ py: 4 }} />
             ) : (
               <Box sx={{ p: 0.5 }}>
-                {(allocationsSummary?.recent ?? []).map((a) => (
-                  <Box key={a.id} sx={{
-                    display: 'flex', alignItems: 'center', gap: 2, px: 2, py: 1.5,
-                    borderRadius: 2, transition: 'background 150ms ease', '&:hover': { bgcolor: tokens.colors.neutral },
-                  }}>
+                {(allocationsSummary?.recent ?? []).map((a) => {
+                  const emp = employees.find((e) => e.id === a.employeeId);
+                  return (
+                  <Box key={a.id}
+                    onClick={() => emp && setDrawerPanel({ kind: 'employee', employee: emp as Employee })}
+                    sx={{
+                      display: 'flex', alignItems: 'center', gap: 2, px: 2, py: 1.5,
+                      borderRadius: 2, cursor: emp ? 'pointer' : 'default',
+                      transition: 'background 150ms ease',
+                      '&:hover': emp ? { bgcolor: tokens.colors.neutral } : {},
+                    }}>
                     <Avatar sx={{ width: 36, height: 36, background: tokens.gradients.primary, fontSize: '0.8rem', fontWeight: 700 }}>
                       {a.employeeName.split(' ').map((n) => n[0]).join('').slice(0, 2)}
                     </Avatar>
@@ -249,12 +400,13 @@ export function DashboardPage() {
                           {a.outcome}
                         </Typography>
                       </Box>
-                    </Box>
-                  </Box>
-                ))}
-              </Box>
-            )}
-          </Paper>
+                   </Box>
+                 </Box>
+                 );
+               })}
+             </Box>
+           )}
+         </Paper>
         </Grid>
 
         {/* Engineers on bench */}
@@ -270,10 +422,15 @@ export function DashboardPage() {
             </Box>
             <Box sx={{ p: 0.5 }}>
               {benchEmployees.map((emp) => (
-                <Box key={emp.id} sx={{
-                  display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1.25,
-                  borderRadius: 2, transition: 'background 150ms ease', '&:hover': { bgcolor: tokens.colors.neutral },
-                }}>
+                <Box key={emp.id}
+                  onClick={() => setDrawerPanel({ kind: 'employee', employee: emp as Employee })}
+                  sx={{
+                    display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1.25,
+                    borderRadius: 2, cursor: 'pointer',
+                    transition: 'background 150ms ease',
+                    '&:hover': { bgcolor: tokens.colors.neutral },
+                    '&:active': { bgcolor: tokens.colors.neutralDark },
+                  }}>
                   <Avatar sx={{ width: 32, height: 32, background: tokens.gradients.success, fontSize: '0.75rem', fontWeight: 700 }}>
                     {emp.name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
                   </Avatar>
@@ -298,6 +455,19 @@ export function DashboardPage() {
           </Paper>
         </Grid>
       </Grid>
+      </MotionBox>
+
+      {/* Detail Drawer — all drill-down views */}
+      <DashboardDrawer
+        panel={drawerPanel}
+        onClose={() => setDrawerPanel(null)}
+        employees={employees}
+        projectNeeds={projectNeeds}
+        allocationHistory={allocationHistoryQuery.data ?? []}
+        utilizationMetrics={utilizationMetrics}
+        benchMetrics={benchMetrics}
+        allocationsSummary={allocationsSummary}
+      />
     </Box>
   );
 }

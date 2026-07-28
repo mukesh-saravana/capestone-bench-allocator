@@ -106,12 +106,17 @@ BACKEND_RAG_MODE=hybrid
 BACKEND_RAG_OPENAI_API_KEY=
 BACKEND_RAG_OPENAI_EMBEDDING_MODEL=text-embedding-3-small
 BACKEND_RAG_CLOUD_TIMEOUT_SECONDS=20
+# Local LLM query planner (optional -- see section 5a)
+BACKEND_LLM_MODE=none
+BACKEND_LLM_LOCAL_URL=http://localhost:11434
+BACKEND_LLM_LOCAL_MODEL=llama3.2
+BACKEND_LLM_TIMEOUT_SECONDS=10
 ```
 
 ### PostgreSQL example
 
 ```env
-BACKEND_DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/bench_allocator
+BACKEND_DATABASE_URL=postgresql+psycopg://<user>:<password>@localhost:5432/bench_allocator
 BACKEND_CORS_ORIGIN=http://localhost:5173
 BACKEND_AUTH_COOKIE_NAME=auth_token
 BACKEND_RAG_MODE=hybrid
@@ -128,8 +133,62 @@ BACKEND_RAG_CLOUD_TIMEOUT_SECONDS=20
 
 ### RAG admin endpoints
 
-- `GET /api/rag/status` — shows current RAG mode, chunk counts, and whether cloud embeddings are configured.
+- `GET /api/rag/status` — shows current RAG mode, chunk counts, cloud config, and LLM planner status.
 - `POST /api/rag/reindex` — rebuilds the in-memory retrieval index after data changes.
+
+---
+
+## 5a) Local LLM query planner (Ollama)
+
+The query planner replaces regex-based intent extraction with a real NLP model running locally via **Ollama**. It extracts `top_k`, `skills`, `department`, and `strategy` from the user's natural language query.
+
+If the LLM is unreachable or returns invalid output, the system silently falls back to the regex path -- nothing breaks.
+
+### Install Ollama
+
+1. Download and install: https://ollama.com/download
+2. Pull a model:
+   ```bash
+   ollama pull llama3.2
+   ```
+3. Ollama runs as a local server at `http://localhost:11434`.
+
+### Enable the planner
+
+In `backend/.env`:
+
+```env
+BACKEND_LLM_MODE=local
+BACKEND_LLM_LOCAL_URL=http://localhost:11434
+BACKEND_LLM_LOCAL_MODEL=llama3.2
+BACKEND_LLM_TIMEOUT_SECONDS=10
+```
+
+Restart the backend. The Settings -> RAG Admin tab will show the active LLM planner mode and model.
+
+### Using OpenAI chat instead of Ollama
+
+```env
+BACKEND_LLM_MODE=cloud
+BACKEND_LLM_CLOUD_OPENAI_API_KEY=<your-openai-key>
+BACKEND_LLM_CLOUD_MODEL=gpt-4o-mini
+```
+
+### What the planner handles (examples)
+
+| Query | top_k | skills | department | strategy |
+|---|---|---|---|---|
+| `give me one candidate` | 1 | [] | null | hybrid |
+| `top 3 React developers` | 3 | [React] | null | skill_first |
+| `someone from backend team who knows Python` | 3 | [Python] | backend | skill_first |
+| `who is on bench right now` | 3 | [] | null | utilization_first |
+| `single best candidate for AWS role` | 1 | [AWS] | null | skill_first |
+
+### LLM mode behavior
+
+- `BACKEND_LLM_MODE=none` (default): regex-only, no LLM dependency.
+- `BACKEND_LLM_MODE=local`: calls Ollama, falls back to regex on failure.
+- `BACKEND_LLM_MODE=cloud`: calls OpenAI chat completions, falls back to regex on failure.
 
 ---
 

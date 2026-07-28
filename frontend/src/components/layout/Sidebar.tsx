@@ -1,4 +1,4 @@
-import { Box, Drawer, List, ListItemButton, ListItemIcon, ListItemText, Typography, useMediaQuery, useTheme, Chip } from '@mui/material';
+import { Box, Drawer, List, ListItemButton, ListItemIcon, ListItemText, Typography, useMediaQuery, useTheme, Chip, Avatar } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import ChatIcon from '@mui/icons-material/Chat';
 import PeopleIcon from '@mui/icons-material/People';
@@ -6,6 +6,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { tokens } from '../../theme';
+import { useAuth } from '../../store/AuthContext';
 
 const SIDEBAR_WIDTH = 252;
 
@@ -24,6 +25,8 @@ interface SidebarProps {
 function SidebarContent() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { user } = useAuth();
+  const initials = user?.name?.split(' ').map((n) => n[0]).join('').slice(0, 2) ?? 'DM';
 
   return (
     <Box sx={{ height: '100%', background: tokens.gradients.sidebar, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -135,14 +138,33 @@ function SidebarContent() {
         })}
       </List>
 
-      {/* Footer */}
-      <Box sx={{ px: 2, py: 2, mx: 1.5, mb: 2, borderRadius: 2, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
-        <Typography sx={{ fontSize: '0.7rem', color: tokens.colors.sidebarText, lineHeight: 1.5 }}>
-          MVP Demo · v1.0
-        </Typography>
-        <Typography sx={{ fontSize: '0.65rem', color: 'rgba(148,163,184,0.5)' }}>
-          RAG-powered staffing
-        </Typography>
+      {/* Footer — user profile */}
+      <Box sx={{ px: 1.5, pb: 2 }}>
+        <Box sx={{
+          display: 'flex', alignItems: 'center', gap: 1.5,
+          px: 1.5, py: 1.25, borderRadius: 2,
+          background: 'rgba(255,255,255,0.05)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          cursor: 'default',
+        }}>
+          <Avatar sx={{
+            width: 32, height: 32, flexShrink: 0,
+            background: tokens.gradients.primary,
+            fontSize: '0.7rem', fontWeight: 700,
+            boxShadow: tokens.shadows.colored(tokens.colors.primary),
+          }}>
+            {initials}
+          </Avatar>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: '#E2E8F0', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {user?.name ?? 'Demo Manager'}
+            </Typography>
+            <Typography sx={{ fontSize: '0.65rem', color: tokens.colors.sidebarText, lineHeight: 1.3 }}>
+              {user?.role ?? 'Resource Manager'}
+            </Typography>
+          </Box>
+          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: tokens.colors.success, flexShrink: 0, boxShadow: `0 0 6px ${tokens.colors.success}80` }} />
+        </Box>
       </Box>
     </Box>
   );
