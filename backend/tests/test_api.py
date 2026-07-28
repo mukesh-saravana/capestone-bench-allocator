@@ -153,6 +153,44 @@ def test_chat_query_returns_recommendations() -> None:
     assert body["messageId"].startswith("msg-")
 
 
+def test_chat_query_single_best_candidate_returns_one_result() -> None:
+    headers = login_headers()
+    response = client.post(
+        "/api/chat/query",
+        headers=headers,
+        json={"query": "Give me a single best candidate for React", "strategy": "hybrid"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["recommendations"]) == 1
+    assert "best candidate is" in body["answer"].lower()
+
+
+def test_chat_query_uses_rag_context_for_project_specific_request() -> None:
+    headers = login_headers()
+    response = client.post(
+        "/api/chat/query",
+        headers=headers,
+        json={"query": "Give me a single best candidate for Alpha Commerce Platform", "strategy": "hybrid"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["recommendations"]) == 1
+    assert body["recommendations"][0]["employee"]["name"] == "John Doe"
+
+
+def test_chat_query_honors_top_k_from_user_request() -> None:
+    headers = login_headers()
+    response = client.post(
+        "/api/chat/query",
+        headers=headers,
+        json={"query": "Give me top 2 candidates with React and AWS", "strategy": "hybrid"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["recommendations"]) == 2
+
+
 def test_rag_status_and_reindex_endpoints() -> None:
     headers = login_headers()
 
@@ -193,3 +231,12 @@ def test_allocation_creation_updates_state() -> None:
     summary = client.get("/api/dashboard/allocations", headers=headers)
     assert summary.status_code == 200
     assert summary.json()["totalAllocations"] >= 5
+
+    recommendations = client.post(
+        "/api/recommendations",
+        headers=headers,
+        json={"requiredSkills": ["Docker", "Kubernetes"], "strategy": "hybrid"},
+    )
+    assert recommendations.status_code == 200
+    rec_body = recommendations.json()
+    assert all(item["employee"]["id"] != "emp-003" for item in rec_body["recommendations"])

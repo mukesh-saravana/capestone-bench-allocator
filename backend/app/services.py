@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+import re
 
 from .data import store
 from .models import Recommendation, RecommendationResponse, ScoreBreakdown, Strategy
@@ -21,6 +22,60 @@ def _extract_known_skills(query: str) -> list[str]:
     query_lower = query.lower()
     known = {employee_skill.skill.name for emp in store.employees.values() for employee_skill in emp.skills}
     return [skill for skill in sorted(known) if skill.lower() in query_lower]
+
+
+def _extract_skills_from_text(text: str, *, known_skills: set[str]) -> list[str]:
+    text_lower = text.lower()
+    found: set[str] = set()
+    for skill in known_skills:
+        if skill.lower() in text_lower:
+            found.add(skill)
+
+    for match in re.finditer(r"skills?[:\s]+([^.;]+)", text, flags=re.IGNORECASE):
+        for token in re.split(r"[,\|/]| and ", match.group(1)):
+            normalized = token.strip().strip(" .")
+            if not normalized:
+                continue
+            for skill in known_skills:
+                if skill.lower() == normalized.lower():
+                    found.add(skill)
+
+    return sorted(found)
+
+
+def _extract_skills_from_snippets(snippets: list[str]) -> list[str]:
+    known = {employee_skill.skill.name for emp in store.employees.values() for employee_skill in emp.skills}
+    discovered: set[str] = set()
+    for snippet in snippets:
+        for skill in _extract_skills_from_text(snippet, known_skills=known):
+            discovered.add(skill)
+    return sorted(discovered)
+
+
+def _extract_skills_from_project_names(query: str) -> list[str]:
+    query_lower = query.lower()
+    discovered: set[str] = set()
+    for need in store.list_project_needs():
+        if need.projectName.lower() in query_lower or need.roleTitle.lower() in query_lower:
+            for skill in need.requiredSkills:
+                discovered.add(skill)
+    return sorted(discovered)
+
+
+def _infer_top_k(query: str, default: int = 3) -> int:
+    query_lower = query.lower()
+    if any(marker in query_lower for marker in ("single best", "best candidate", "single candidate", "one best", "top candidate", "first candidate")):
+        return 1
+    if re.search(r"\bonly one\b", query_lower):
+        return 1
+    match = re.search(r"\btop\s+(\d+)\b", query_lower)
+    if match:
+        return max(1, int(match.group(1)))
+    return default
+
+
+def _infer_department(_: str, __: list[str], explicit_department: str | None) -> str | None:
+    return explicit_department
 
 
 def _availability_score(availability: str, utilization_pct: int) -> float:
@@ -47,7 +102,7 @@ def recommend(
     for employee in store.employees.values():
         if department and employee.department.lower() != department.lower():
             continue
-        if employee.availability in {"on_leave", "exiting"}:
+        if employee.availability in {"allocated", "on_leave", "exiting"}:
             continue
 
         skill_map = {_normalize_skill(entry.skill.name): entry.proficiency for entry in employee.skills}
@@ -107,6 +162,11 @@ def recommend(
     return RecommendationResponse(recommendations=recommendations[:top_k], generatedAt=datetime.now(UTC))
 
 
-def recommend_from_query(*, query: str, strategy: Strategy, department: str | None) -> RecommendationResponse:
+def recommend_from_query(*, query: str, strategy: Strategy, department: str | None, evidence_snippets: list[str] | None = None) -> RecommendationResponse:
+    snippets = evidence_snippets or []
     inferred_skills = _extract_known_skills(query)
-    return recommend(required_skills=inferred_skills or ["React"], department=department, strategy=strategy, top_k=3)
+    inferred_skills.extend(skill for skill in _extract_skills_from_project_names(query) if skill not in inferred_skills)
+    inferred_skills.extend(skill for skill in _extract_skills_from_snippets(snippets) if skill not in inferred_skills)
+    inferred_department = _infer_department(query, snippets, department)
+    top_k = _infer_top_k(query)
+    return recommend(required_skills=inferred_skills or ["React"], department=inferred_department, strategy=strategy, top_k=top_k)

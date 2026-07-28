@@ -172,8 +172,9 @@ Tests use a separate test database file under `backend/tests/`.
 
 1. Frontend sends query to `POST /api/chat/query`
 2. Backend retrieves contextual evidence with RAG from employee, project-need, and allocation data
-3. Recommendation engine runs
-4. Backend returns:
+3. Query intent is inferred from the user request plus retrieved context (skills, department, top-k)
+4. Recommendation engine runs
+5. Backend returns:
    - answer text
    - recommendations
    - evidence snippets + citations

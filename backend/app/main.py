@@ -436,11 +436,6 @@ def export_candidates(current_user: User = Depends(get_current_user)) -> Streami
 
 @app.post("/api/chat/query", response_model=ChatQueryResponse)
 def chat_query(payload: ChatQueryRequest, current_user: User = Depends(get_current_user)) -> ChatQueryResponse:
-    recommendation_response = recommend_from_query(
-        query=payload.query, strategy=payload.strategy, department=(payload.filters.department if payload.filters else None)
-    )
-    recommendations = recommendation_response.recommendations
-    top_names = ", ".join(rec.employee.name for rec in recommendations[:3]) if recommendations else "No matching candidates"
     try:
         rag_context = rag_service.retrieve(
             query=payload.query,
@@ -450,7 +445,20 @@ def chat_query(payload: ChatQueryRequest, current_user: User = Depends(get_curre
     except RuntimeError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"RAG retrieval failed: {exc}") from exc
 
-    answer = f"For '{payload.query}', top candidates are: {top_names}. Retrieval mode: {rag_context.mode}."
+    recommendation_response = recommend_from_query(
+        query=payload.query,
+        strategy=payload.strategy,
+        department=(payload.filters.department if payload.filters else None),
+        evidence_snippets=rag_context.snippets,
+    )
+    recommendations = recommendation_response.recommendations
+    top_k = len(recommendations)
+    top_names = ", ".join(rec.employee.name for rec in recommendations[:3]) if recommendations else "No matching candidates"
+
+    if top_k == 1:
+        answer = f"For '{payload.query}', the best candidate is {top_names}. Retrieval mode: {rag_context.mode}."
+    else:
+        answer = f"For '{payload.query}', top candidates are: {top_names}. Retrieval mode: {rag_context.mode}."
     evidence: list[str] = []
     seen_snippets: set[str] = set()
     for snippet in [*rag_context.snippets, *(snippet for rec in recommendations for snippet in rec.evidenceSnippets)]:
