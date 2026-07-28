@@ -5,6 +5,7 @@ export type Priority = 'high' | 'medium' | 'low';
 export type ProjectStatus = 'active' | 'upcoming' | 'completed' | 'on_hold';
 export type UserRole = 'admin' | 'resource_manager' | 'delivery_manager' | 'project_lead';
 export type AllocationOutcome = 'completed' | 'transferred' | 'early_exit' | 'ongoing';
+export type RecommendationStrategy = 'skill_first' | 'utilization_first' | 'hybrid';
 
 export interface Skill {
   id: string;
@@ -27,6 +28,8 @@ export interface Employee {
   availability: AvailabilityStatus;
   utilizationPct: number;
   benchSince?: string;
+  interviewScore?: number;
+  interviewResult?: string;
   skills: EmployeeSkill[];
   avatar?: string;
 }
@@ -122,7 +125,7 @@ export interface ApiError {
 
 export interface ChatQueryRequest {
   query: string;
-  strategy?: 'skill_first' | 'utilization_first' | 'hybrid';
+  strategy?: RecommendationStrategy;
   filters?: { skills?: string[]; department?: string };
 }
 
@@ -130,7 +133,25 @@ export interface ChatQueryResponse {
   answer: string;
   recommendations: Recommendation[];
   evidenceSnippets: string[];
+  citations?: string[];
+  retrievalMode?: 'local' | 'cloud';
   messageId: string;
+}
+
+export interface RagStatusResponse {
+  mode: 'local' | 'cloud' | 'hybrid';
+  retrievalMode: 'local' | 'cloud';
+  indexedChunks: number;
+  employeeChunks: number;
+  projectNeedChunks: number;
+  allocationChunks: number;
+  cloudConfigured: boolean;
+}
+
+export interface RagReindexResponse {
+  status: 'ok';
+  indexedChunks: number;
+  retrievalMode: 'local' | 'cloud';
 }
 
 export interface AssignRequest {
@@ -139,4 +160,51 @@ export interface AssignRequest {
   role: string;
   startDate: string;
   notes?: string;
+}
+
+export interface LoginResponse {
+  token: string;
+  user: User;
+}
+
+export interface RecommendationRequest {
+  projectNeedId?: string;
+  requiredSkills?: string[];
+  department?: string;
+  strategy?: RecommendationStrategy;
+}
+
+export interface RecommendationResponse {
+  recommendations: Recommendation[];
+  generatedAt: string;
+}
+
+export interface AllocationsSummary {
+  totalAllocations: number;
+  activeAllocations: number;
+  completedAllocations: number;
+  recent: AllocationHistory[];
+}
+
+export interface DataSetSummary {
+  key: string;
+  label: string;
+  rows: number;
+  lastUpdated: string;
+  importEnabled: boolean;
+}
+
+export interface CandidateImportResult {
+  imported: number;
+  updated: number;
+  skipped: number;
+  sourceFile: string;
+  dataset: string;
+}
+
+export interface SkillTag {
+  id: string;
+  name: string;
+  category: string;
+  usage: number;
 }

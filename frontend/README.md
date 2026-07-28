@@ -2,6 +2,14 @@
 
 This is the React frontend for the Capstone Bench Allocator MVP.
 
+## Docs index
+
+- `README.md` — frontend overview and run instructions
+- `flow.md` — non-technical walkthrough of the UI
+- `docs/frontend-backend-integration-readme.md` — end-to-end setup guide
+- `docs/rag-overview.md` — RAG behavior and why it matters
+- `docs/dashboard-elements-and-data.md` — dashboard cards, charts, and data sources
+
 ## Stack
 
 - React + TypeScript + Vite
@@ -44,16 +52,17 @@ npm run preview
 - Modernized visual design system (colors, gradients, typography, shadows)
 - Sidebar and topbar shell for all authenticated screens
 - Dashboard metrics and staffing overview panels
-- Chat assistant surface with suggested prompts
+- Chat assistant surface with suggested prompts and RAG-assisted candidate ranking
 - Recommendation ranking cards, profile modal, assignment modal
-- Settings tabs for preferences and data management UI
+- Settings tabs for preferences, data management, and RAG admin controls
+- Live RAG mode/status chip in the top bar
 - Loading/empty/error feedback patterns and toast notifications
 - Global smooth page and component transitions
 
 ## Important note
 
-Current MVP uses mock/demo data and mock auth flow.  
-API integration points are already structured for backend hookup.
+The frontend is now wired to the backend APIs for the core staffing workflow.
+Demo auth remains lightweight, but chat, recommendations, dashboard, allocations, and RAG controls all talk to the backend.
 
 ## Full non-technical walkthrough
 

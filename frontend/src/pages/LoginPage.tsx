@@ -32,8 +32,12 @@ export function LoginPage() {
     try {
       await login(data.email, data.password);
       navigate('/dashboard', { replace: true });
-    } catch {
-      setError('Invalid email or password. Please try again.');
+    } catch (error) {
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('Invalid email or password. Please try again.');
+      }
     }
   };
 
@@ -158,7 +162,7 @@ export function LoginPage() {
 
           <Box sx={{ mt: 4, pt: 3, borderTop: `1px solid ${tokens.colors.border}`, textAlign: 'center' }}>
             <Typography sx={{ fontSize: '0.75rem', color: tokens.colors.textTertiary }}>
-              Demo: use any email + password (4+ chars)
+              Demo: use manager@company.com / demo1234 or any email with password 4+ chars
             </Typography>
           </Box>
         </Box>

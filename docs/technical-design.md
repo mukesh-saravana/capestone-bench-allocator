@@ -10,14 +10,14 @@ We will use a **Modular Monolith** with **Clean (Hexagonal) Architecture**.
 
 Why this pattern:
 - Fast to build and demo for MVP
-- Clear separation between business logic and external tools (LLM, DB, vector store)
+- Clear separation between business logic and external tools (LLM, DB, retrieval/indexing)
 - Easy to evolve into microservices later if scale requires it
 
 Layers:
 1. **Presentation Layer** - React UI and HTTP API endpoints
 2. **Application Layer** - Use-case orchestration
 3. **Domain Layer** - Core entities and ranking rules
-4. **Infrastructure Layer** - Database, vector DB, LLM adapters, ingestion, logging
+4. **Infrastructure Layer** - Database, retrieval index, LLM adapters, ingestion, logging
 
 ## 3. Chosen Technology Stack
 
@@ -29,10 +29,10 @@ Layers:
 
 ### Backend and AI
 - FastAPI (Python)
-- RAG orchestration: LlamaIndex or LangChain
-- LLM/embeddings: OpenAI or Azure OpenAI
-- Relational DB: PostgreSQL
-- Vector DB: Qdrant (or pgvector if single-DB setup is preferred)
+- Hybrid RAG orchestration: backend-owned retrieval service
+- LLM/embeddings: OpenAI or Azure OpenAI (optional cloud mode)
+- Relational DB: SQLite for local dev, PostgreSQL for production-style setups
+- Retrieval index: in-memory/local lexical chunks with optional cloud embedding fallback
 
 ### Platform
 - Docker Compose for local/development deployment
@@ -62,11 +62,11 @@ Layers:
   - Project repository
   - Allocation history repository
 - **RAG Service**:
-  - Retrieval + context builder + answer generation
+  - Retrieval + context builder + query planning + answer generation
 
 ## Data Stores
-- PostgreSQL for transactional and analytical base data
-- Vector store for embeddings and semantic retrieval
+- SQLite/PostgreSQL for transactional and analytical base data
+- In-memory retrieval index for local RAG mode
 
 ## 5. Domain Model (Core Entities)
 
@@ -194,18 +194,20 @@ CREATE TABLE recommendation_results (
 ## 6. RAG Pipeline Design
 
 1. Ingest employee, project, and allocation datasets
-2. Clean and normalize skills/tags
-3. Chunk and embed relevant records/documents
-4. Store vectors in vector DB
-5. Retrieve top-k evidence for user query
+2. Build in-memory retrieval chunks from live store data
+3. Use lexical matching in local mode or embeddings in cloud mode
+4. Retrieve top-k evidence for the user query
+5. Infer query intent from the user request and retrieved context
 6. Re-rank candidates using domain scoring logic
 7. Generate response grounded in retrieved evidence
-8. Return ranked list + explanation + source snippets
+8. Return ranked list + explanation + source snippets + retrieval mode
 
 Guardrails:
 - Responses must be evidence-grounded
 - Include "why suggested" factors
 - No final automated allocation; human approval remains required
+- Allocated/on-leave/exiting employees are excluded from candidate selection
+- User requests like "single best candidate" should return one recommendation
 
 ## 7. Recommendation/Ranking Design
 
@@ -236,7 +238,7 @@ Implementation pattern:
 
 - `POST /api/chat/query`
   - Input: staffing question/context
-  - Output: answer, ranked recommendations, evidence
+  - Output: answer, ranked recommendations, evidence, citations, retrieval mode
 
 - `POST /api/recommendations`
   - Input: project need + constraints
@@ -250,6 +252,12 @@ Implementation pattern:
 
 - `GET /api/dashboard/allocations`
   - Output: allocation summary metrics
+
+- `GET /api/rag/status`
+  - Output: retrieval mode, chunk counts, cloud status
+
+- `POST /api/rag/reindex`
+  - Rebuilds the in-memory retrieval index
 
 - `POST /api/allocations`
   - Input: employee_id, project_need_id, role, start_date, notes
@@ -290,7 +298,7 @@ Environment configuration:
 - Error tracking with clear API error responses
 - Basic health checks:
   - `/health` for backend
-  - DB and vector DB connectivity checks
+  - DB connectivity and RAG index refresh checks
 
 ## 13. Delivery Phases
 
@@ -388,4 +396,3 @@ Ensure seed data includes at least:
 - Add forecasting/capacity planning models
 - Introduce stronger RBAC and governance
 - Split modules into services if scale/performance requires
-

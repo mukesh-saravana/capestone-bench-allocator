@@ -1,34 +1,61 @@
 import { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Button, Box, Typography, Avatar, TextField, CircularProgress,
 } from '@mui/material';
-import type { Recommendation } from '../../types';
-import { MOCK_PROJECT_NEEDS } from '../../lib/mockData';
+import type { ProjectNeed, Recommendation } from '../../types';
 import { tokens } from '../../theme';
 import { useToast } from '../../store/ToastContext';
+import { createAllocation } from '../../lib/api';
 
 interface AssignmentModalProps {
   recommendation: Recommendation;
-  projectNeedId?: string;
+  projectNeed: ProjectNeed | null;
   onClose: () => void;
   onBack?: () => void;
+  onAssigned?: () => void;
 }
 
-export function AssignmentModal({ recommendation: r, projectNeedId, onClose, onBack }: AssignmentModalProps) {
+export function AssignmentModal({ recommendation: r, projectNeed, onClose, onBack, onAssigned }: AssignmentModalProps) {
   const { showToast } = useToast();
+  const queryClient = useQueryClient();
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const need = MOCK_PROJECT_NEEDS.find((n) => n.id === projectNeedId) ?? MOCK_PROJECT_NEEDS[0];
+  const assignMutation = useMutation({
+    mutationFn: createAllocation,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['dashboard', 'allocations'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard', 'bench'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard', 'utilization'] }),
+        queryClient.invalidateQueries({ queryKey: ['employees'] }),
+        queryClient.invalidateQueries({ queryKey: ['project-needs'] }),
+        queryClient.invalidateQueries({ queryKey: ['recommendations'] }),
+        queryClient.invalidateQueries({ queryKey: ['allocation-history'] }),
+      ]);
+    },
+  });
 
   const handleConfirm = async () => {
-    setLoading(true);
-    await new Promise((res) => setTimeout(res, 900));
-    setLoading(false);
-    showToast(`✅ ${r.employee.name} assigned to ${need.projectName}`, 'success');
-    onClose();
+    if (!projectNeed) {
+      showToast('No project need selected for this assignment.', 'error');
+      return;
+    }
+    try {
+      await assignMutation.mutateAsync({
+        employeeId: r.employee.id,
+        projectNeedId: projectNeed.id,
+        role: projectNeed.roleTitle,
+        startDate,
+        notes: notes.trim() ? notes.trim() : undefined,
+      });
+      showToast(`✅ ${r.employee.name} assigned to ${projectNeed.projectName}`, 'success');
+      onAssigned?.();
+      onClose();
+    } catch {
+      showToast('Failed to create allocation. Please try again.', 'error');
+    }
   };
 
   return (
@@ -53,8 +80,14 @@ export function AssignmentModal({ recommendation: r, projectNeedId, onClose, onB
         <Box sx={{ mb: 2.5 }}>
           <Typography variant="body2" sx={{ mb: 0.5, fontWeight: 600 }}>To Project</Typography>
           <Box sx={{ p: 1.5, border: `1px solid ${tokens.colors.border}`, borderRadius: 1.5 }}>
-            <Typography variant="body1" sx={{ fontWeight: 600 }}>◼ {need.projectName}</Typography>
-            <Typography variant="body2">Role: {need.roleTitle}</Typography>
+            {projectNeed ? (
+              <>
+                <Typography variant="body1" sx={{ fontWeight: 600 }}>◼ {projectNeed.projectName}</Typography>
+                <Typography variant="body2">Role: {projectNeed.roleTitle}</Typography>
+              </>
+            ) : (
+              <Typography variant="body2">No project need selected.</Typography>
+            )}
           </Box>
         </Box>
 
@@ -84,10 +117,10 @@ export function AssignmentModal({ recommendation: r, projectNeedId, onClose, onB
         <Button onClick={onClose} variant="outlined" color="inherit">Cancel</Button>
         <Button
           onClick={handleConfirm} variant="contained"
-          disabled={loading}
-          startIcon={loading ? <CircularProgress size={16} color="inherit" /> : undefined}
+          disabled={assignMutation.isPending || !projectNeed}
+          startIcon={assignMutation.isPending ? <CircularProgress size={16} color="inherit" /> : undefined}
         >
-          {loading ? 'Confirming…' : 'Confirm Assign'}
+          {assignMutation.isPending ? 'Confirming…' : 'Confirm Assign'}
         </Button>
       </DialogActions>
     </Dialog>

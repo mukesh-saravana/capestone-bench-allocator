@@ -7,13 +7,13 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import StarIcon from '@mui/icons-material/Star';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
 import { useState } from 'react';
-import type { Recommendation } from '../../types';
+import type { AllocationHistory, Recommendation } from '../../types';
 import { AvailabilityBadge } from '../../components/common/Badges';
-import { MOCK_ALLOCATIONS } from '../../lib/mockData';
 import { tokens } from '../../theme';
 
 interface ProfileModalProps {
   recommendation: Recommendation;
+  allocations: AllocationHistory[];
   onClose: () => void;
   onAssign: (r: Recommendation) => void;
 }
@@ -30,9 +30,9 @@ function StarRating({ value }: { value: number }) {
   );
 }
 
-export function ProfileModal({ recommendation: r, onClose, onAssign }: ProfileModalProps) {
+export function ProfileModal({ recommendation: r, allocations, onClose, onAssign }: ProfileModalProps) {
   const [tab, setTab] = useState(0);
-  const empAllocations = MOCK_ALLOCATIONS.filter((a) => a.employeeId === r.employee.id);
+  const empAllocations = allocations.filter((a) => a.employeeId === r.employee.id);
 
   return (
     <Dialog open onClose={onClose} maxWidth="sm" fullWidth slotProps={{ paper: { sx: { maxHeight: '85vh' } } }}>

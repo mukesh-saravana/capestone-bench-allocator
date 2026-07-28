@@ -1,4 +1,5 @@
 import { Grid, Box, Typography, Paper, Chip, Avatar } from '@mui/material';
+import { useQuery } from '@tanstack/react-query';
 import { ResponsiveContainer, LineChart, Line, AreaChart, Area, Tooltip as ReTooltip } from 'recharts';
 import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
@@ -11,19 +12,48 @@ import { ProgressBar } from '../../components/common/ProgressBar';
 import { PriorityBadge } from '../../components/common/Badges';
 import { EmptyState } from '../../components/common/EmptyState';
 import { SkeletonCard, SkeletonTable } from '../../components/common/SkeletonCard';
-import {
-  MOCK_BENCH_METRICS, MOCK_UTILIZATION_METRICS,
-  MOCK_PROJECT_NEEDS, MOCK_ALLOCATIONS, MOCK_EMPLOYEES,
-} from '../../lib/mockData';
+import { getAllocationsSummary, getBenchMetrics, getEmployees, getProjectNeeds, getUtilizationMetrics } from '../../lib/api';
 import { tokens } from '../../theme';
 
-const loading = false;
-
 export function DashboardPage() {
-  const benchCount = MOCK_BENCH_METRICS.totalOnBench;
-  const utilPct = MOCK_UTILIZATION_METRICS.averagePct;
-  const openRoles = MOCK_PROJECT_NEEDS.filter((n) => n.status === 'open').reduce((s, n) => s + n.openSlots, 0);
-  const allocatedThisMonth = MOCK_ALLOCATIONS.filter((a) => a.outcome === 'ongoing').length;
+  const benchQuery = useQuery({ queryKey: ['dashboard', 'bench'], queryFn: getBenchMetrics });
+  const utilizationQuery = useQuery({ queryKey: ['dashboard', 'utilization'], queryFn: getUtilizationMetrics });
+  const allocationsQuery = useQuery({ queryKey: ['dashboard', 'allocations'], queryFn: getAllocationsSummary });
+  const projectNeedsQuery = useQuery({ queryKey: ['project-needs'], queryFn: getProjectNeeds });
+  const employeesQuery = useQuery({ queryKey: ['employees'], queryFn: getEmployees });
+
+  const loading = benchQuery.isLoading
+    || utilizationQuery.isLoading
+    || allocationsQuery.isLoading
+    || projectNeedsQuery.isLoading
+    || employeesQuery.isLoading;
+
+  const hasError = benchQuery.isError
+    || utilizationQuery.isError
+    || allocationsQuery.isError
+    || projectNeedsQuery.isError
+    || employeesQuery.isError;
+
+  if (hasError) {
+    return (
+      <EmptyState
+        title="Unable to load dashboard data"
+        description="Please check the backend service and try again."
+      />
+    );
+  }
+
+  const benchMetrics = benchQuery.data;
+  const utilizationMetrics = utilizationQuery.data;
+  const allocationsSummary = allocationsQuery.data;
+  const projectNeeds = projectNeedsQuery.data ?? [];
+  const employees = employeesQuery.data ?? [];
+  const benchEmployees = employees.filter((employee) => employee.availability === 'available');
+
+  const benchCount = benchMetrics?.totalOnBench ?? 0;
+  const utilPct = utilizationMetrics?.averagePct ?? 0;
+  const openRoles = projectNeeds.filter((need) => need.status === 'open').reduce((sum, need) => sum + need.openSlots, 0);
+  const allocatedThisMonth = allocationsSummary?.activeAllocations ?? 0;
 
   return (
     <Box>
@@ -41,7 +71,7 @@ export function DashboardPage() {
             >
               <Box sx={{ height: 36 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={MOCK_BENCH_METRICS.trend}>
+                  <LineChart data={benchMetrics?.trend ?? []}>
                     <Line type="monotone" dataKey="count" stroke={tokens.colors.primary} strokeWidth={2} dot={false} />
                     <ReTooltip contentStyle={{ fontSize: 11 }} />
                   </LineChart>
@@ -80,7 +110,7 @@ export function DashboardPage() {
             >
               <Box sx={{ height: 36 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={MOCK_BENCH_METRICS.trend}>
+                  <AreaChart data={benchMetrics?.trend ?? []}>
                     <Area type="monotone" dataKey="count" stroke={tokens.colors.danger} fill={`${tokens.colors.danger}15`} strokeWidth={2} dot={false} />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -112,17 +142,17 @@ export function DashboardPage() {
                 <Typography sx={{ fontWeight: 700, fontSize: '0.9375rem', color: tokens.colors.text }}>Active Projects</Typography>
                 <Typography variant="body2">Open staffing needs</Typography>
               </Box>
-              <Chip label={`${MOCK_PROJECT_NEEDS.length} open`} size="small"
+              <Chip label={`${projectNeeds.length} open`} size="small"
                 sx={{ bgcolor: `${tokens.colors.primary}12`, color: tokens.colors.primary, fontWeight: 600, border: `1px solid ${tokens.colors.primary}25` }} />
             </Box>
-            {loading ? <SkeletonTable rows={4} /> : MOCK_PROJECT_NEEDS.length === 0 ? (
+            {loading ? <SkeletonTable rows={4} /> : projectNeeds.length === 0 ? (
               <EmptyState title="No open project needs at this time." sx={{ py: 4 }} />
             ) : (
               <Box>
-                {MOCK_PROJECT_NEEDS.map((need, i) => (
+                {projectNeeds.map((need, i) => (
                   <Box key={need.id} sx={{
                     px: 2.5, py: 1.75, display: 'flex', alignItems: 'center', gap: 2,
-                    borderBottom: i < MOCK_PROJECT_NEEDS.length - 1 ? `1px solid ${tokens.colors.border}` : 'none',
+                    borderBottom: i < projectNeeds.length - 1 ? `1px solid ${tokens.colors.border}` : 'none',
                     transition: 'background 150ms ease',
                     '&:hover': { bgcolor: tokens.colors.neutral },
                   }}>
@@ -165,7 +195,7 @@ export function DashboardPage() {
               <Typography variant="body2">Current allocation rates</Typography>
             </Box>
             <Box sx={{ p: 2.5 }}>
-              {MOCK_UTILIZATION_METRICS.byDepartment.map(({ department, pct }) => (
+              {(utilizationMetrics?.byDepartment ?? []).map(({ department, pct }) => (
                 <Box key={department} sx={{ mb: 2.5, '&:last-child': { mb: 0 } }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.75 }}>
                     <Typography sx={{ fontSize: '0.875rem', fontWeight: 500, color: tokens.colors.text }}>{department}</Typography>
@@ -189,11 +219,11 @@ export function DashboardPage() {
               <Typography sx={{ fontWeight: 700, fontSize: '0.9375rem', color: tokens.colors.text }}>Recent Allocations</Typography>
               <Typography variant="body2">Staffing activity feed</Typography>
             </Box>
-            {loading ? <SkeletonTable rows={4} /> : MOCK_ALLOCATIONS.length === 0 ? (
+            {loading ? <SkeletonTable rows={4} /> : (allocationsSummary?.recent.length ?? 0) === 0 ? (
               <EmptyState title="No allocations yet." description="Upload data to get started." sx={{ py: 4 }} />
             ) : (
               <Box sx={{ p: 0.5 }}>
-                {MOCK_ALLOCATIONS.slice(0, 6).map((a) => (
+                {(allocationsSummary?.recent ?? []).map((a) => (
                   <Box key={a.id} sx={{
                     display: 'flex', alignItems: 'center', gap: 2, px: 2, py: 1.5,
                     borderRadius: 2, transition: 'background 150ms ease', '&:hover': { bgcolor: tokens.colors.neutral },
@@ -239,7 +269,7 @@ export function DashboardPage() {
                 sx={{ bgcolor: `${tokens.colors.success}12`, color: tokens.colors.success, fontWeight: 600, border: `1px solid ${tokens.colors.success}25` }} />
             </Box>
             <Box sx={{ p: 0.5 }}>
-              {MOCK_EMPLOYEES.filter((e) => e.availability === 'available').map((emp) => (
+              {benchEmployees.map((emp) => (
                 <Box key={emp.id} sx={{
                   display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1.25,
                   borderRadius: 2, transition: 'background 150ms ease', '&:hover': { bgcolor: tokens.colors.neutral },

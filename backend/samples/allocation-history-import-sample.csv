@@ -1,0 +1,4 @@
+allocation_id,employee_id,employee_name,project_id,project_name,role,start_date,end_date,outcome,notes
+alloc-101,emp-101,Ananya Rao,prj-101,Bench Insights Revamp,Backend Engineer,2026-08-02,,ongoing,Initial staffing from bench pool
+alloc-102,emp-102,Vikram Iyer,prj-102,Workforce Analytics Dashboard,Frontend Engineer,2026-07-10,2026-07-30,completed,Delivered sprint UI scope
+alloc-103,emp-103,Priya Nair,prj-103,Cloud Migration Initiative,DevOps Engineer,2026-06-15,2026-07-20,transferred,Moved to platform reliability program

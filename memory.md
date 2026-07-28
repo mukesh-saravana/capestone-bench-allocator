@@ -6,7 +6,7 @@ This file stores durable project context so future prompts can continue with con
 
 - Project: Capstone Bench Allocator
 - Goal: AI-assisted resource allocation and bench management with recommendations and analytics
-- Stage: Planning and architecture finalized; implementation folders not yet created
+- Stage: Implemented MVP with backend + frontend integration, hybrid RAG, and dashboard docs
 
 ## Chosen Architecture and Pattern
 
@@ -16,7 +16,7 @@ This file stores durable project context so future prompts can continue with con
   - Presentation (React UI + API endpoints)
   - Application (use cases/orchestration)
   - Domain (entities, ranking rules)
-  - Infrastructure (DB, vector store, LLM adapters, ingestion)
+  - Infrastructure (DB, retrieval index, LLM adapters, ingestion)
 
 ## Chosen Stack
 
@@ -25,10 +25,9 @@ This file stores durable project context so future prompts can continue with con
 - State/data: React Query + Axios
 - Charts: Recharts
 - Backend: FastAPI (Python)
-- RAG framework: LlamaIndex or LangChain
-- LLM/Embeddings: OpenAI or Azure OpenAI
-- Relational DB: PostgreSQL
-- Vector DB: Qdrant (or pgvector as alternative)
+- RAG: backend-owned hybrid retrieval service with optional OpenAI embeddings
+- LLM/Embeddings: OpenAI or Azure OpenAI (optional cloud planner/retrieval mode)
+- Relational DB: SQLite for local dev, PostgreSQL for production-style setups
 - Deployment: Docker Compose
 
 ## MVP Scope Snapshot
@@ -38,9 +37,10 @@ This file stores durable project context so future prompts can continue with con
   - RAG-based staffing Q&A
   - Ranked candidate recommendations
   - Dashboard for bench/utilization/allocation metrics
+  - RAG admin/status controls
 - Constraints:
   - Human approval required (no fully automated final allocation)
-  - Demo-ready MVP, not full production rollout
+  - Demo-ready MVP with live backend integration, not full production rollout
 
 ## Repository Naming Standards Applied
 
@@ -61,20 +61,19 @@ Based on common current repository/documentation conventions:
 - `README.md`: project overview
 - `docs/scope.md`: scope and boundaries
 - `docs/technical-design.md`: architecture and technical design
+- `docs/rag-overview.md`: RAG behavior, data flow, and operational controls
+- `docs/dashboard-elements-and-data.md`: dashboard cards/charts and their data sources
 - `memory.md`: persistent project decisions and notes
 
 ## Current Known Next Steps
 
-1. Create implementation folder skeleton (`frontend/`, `backend/`, `data/`, optionally `infra/`)
-2. Define API contracts from technical design
-3. Build ingestion and normalization pipeline
-4. Implement recommendation + explainability logic
-5. Build React chat and dashboard UI
+1. Optional cloud LLM planner for harder natural-language queries
+2. Historical snapshotting if more accurate trend charts are needed
+3. Production hardening (migrations, monitoring, stronger RBAC)
 
 ## Working Agreements for Future Prompts
 
 - Preserve chosen architecture unless explicitly changed
-- Preserve React + FastAPI + PostgreSQL + vector DB direction
+- Preserve React + FastAPI + hybrid RAG direction
 - Keep naming in lowercase kebab-case for new non-canonical files
 - Keep documentation updates aligned with actual implementation changes
-

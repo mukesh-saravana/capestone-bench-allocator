@@ -1,2 +1,15 @@
 # Ignore starter/reference PDF files
 project-starters/*.pdf
+
+# Python cache/build artifacts
+**/__pycache__/
+*.pyc
+.pytest_cache/
+
+# Local environment files
+.env
+.env.*
+
+# Local database files
+backend/*.db
+backend/tests/*.db

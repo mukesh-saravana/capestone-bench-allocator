@@ -24,6 +24,7 @@ The solution has two main parts:
 - Historical allocation context for better matching
 - Bench and utilization analytics for managers
 - Simple chat-style interaction for allocation queries
+- Dataset import (CSV/XLSX) for candidates, employees, project needs, and allocation history
 
 ## MVP Data Inputs
 
@@ -45,7 +46,13 @@ The solution has two main parts:
 - `docs/scope.md`: clear boundaries of what is included in MVP
 - `docs/technical-design.md`: selected architecture pattern, stack, and system design
 - `docs/DESIGN-PLAN.md`: detailed UI/UX plan and implementation roadmap
+- `docs/rag-overview.md`: how RAG works in this app and why it matters
+- `docs/dashboard-elements-and-data.md`: dashboard cards/charts and their data sources
 - `frontend/`: React + Vite + TypeScript application (implemented MVP UI)
+- `backend/`: FastAPI backend API scaffold for auth, chat, recommendations, dashboard, and allocations
+- `backend/README.md`: detailed backend setup, tools install, environment, and API flow guide
+- `docs/frontend-backend-integration-readme.md`: step-by-step frontend + backend integration setup
+- `docs/settings-functionality-status.md`: current settings page feature status (working vs pending)
 - `frontend/flow.md`: non-technical end-to-end frontend usage and behavior guide
 - `README.md`: project overview and progress
 
@@ -83,11 +90,88 @@ The project has moved from planning into active implementation.
 - Loading, empty, and toast feedback states
 - Modernized UI pass: dark-gradient sidebar, glass-style topbar, modern cards, smooth transitions
 - Global motion system with page-level transitions and reduced-motion support
+- Hybrid RAG-assisted chat and recommendation flow wired end-to-end
+- RAG admin/status controls in Settings plus live RAG mode chip in the top bar
+- Dashboard element/data documentation added for charts and summary cards
 
 ### In Progress / Next
 
-- Backend API integration for auth, dashboard metrics, recommendations, and assignments
-- RAG service hookup for live chat/recommendation responses
-- Persisted data and settings workflows
+- Backend API and frontend are integrated for the core staffing workflow
+- Optional cloud LLM planner can be added later for more advanced query understanding
+- Persisted data and settings workflows can be extended further if needed
 
 For a non-technical walkthrough, see: **`frontend/flow.md`**
+
+## Backend Quick Start
+
+From repository root:
+
+```bash
+cd backend
+py -m pip install -r requirements.txt
+py -m uvicorn app.main:app --reload --port 8000
+```
+
+### Backend hardening configuration
+
+- Persistence is now DB-backed through SQLAlchemy.
+- Default local DB (if unset): `sqlite:///./bench_allocator.db`
+- Configure PostgreSQL with:
+
+```bash
+set BACKEND_DATABASE_URL=postgresql+psycopg://<user>:<password>@localhost:5432/bench_allocator
+```
+
+Available MVP endpoints:
+
+- `POST /api/auth/login`
+- `POST /api/auth/logout`
+- `GET /api/auth/me`
+- `GET /api/settings/skills`
+- `POST /api/settings/skills`
+- `PUT /api/settings/skills/{skill_id}`
+- `DELETE /api/settings/skills/{skill_id}`
+- `GET /api/employees`
+- `GET /api/project-needs`
+- `GET /api/allocation-history`
+- `GET /api/data/summary`
+- `POST /api/chat/query`
+- `POST /api/recommendations`
+- `GET /api/dashboard/bench`
+- `GET /api/dashboard/utilization`
+- `GET /api/dashboard/allocations`
+- `GET /api/rag/status`
+- `POST /api/rag/reindex`
+- `POST /api/allocations`
+- `POST /api/import/{dataset_key}` (`candidate_profiles`, `employees`, `project_needs`, `allocation_history`)
+- `POST /api/import/candidates` (compatibility alias for candidate profiles)
+- `GET /api/export/candidates`
+- `GET /health`
+
+## Setup Guides
+
+- Backend setup (tools, env, run, testing, API flows): **`backend/README.md`**
+- Frontend + backend integration setup (end-to-end): **`docs/frontend-backend-integration-readme.md`**
+- Settings feature status (working vs pending): **`docs/settings-functionality-status.md`**
+
+## Documentation Index
+
+- `docs/scope.md` — MVP scope and boundaries
+- `docs/technical-design.md` — architecture and implementation design
+- `docs/rag-overview.md` — what RAG is and how it works in this app
+- `docs/dashboard-elements-and-data.md` — dashboard cards, charts, and data sources
+- `docs/frontend-backend-integration-readme.md` — how frontend and backend connect
+- `docs/settings-functionality-status.md` — current settings page status
+
+## Import Samples
+
+Use these files to test dataset imports from the Settings page:
+
+- `backend/samples/candidate-import-sample.csv`
+- `backend/samples/candidate-import-sample.xlsx`
+- `backend/samples/employees-import-sample.csv`
+- `backend/samples/employees-import-sample.xlsx`
+- `backend/samples/project-needs-import-sample.csv`
+- `backend/samples/project-needs-import-sample.xlsx`
+- `backend/samples/allocation-history-import-sample.csv`
+- `backend/samples/allocation-history-import-sample.xlsx`

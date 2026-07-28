@@ -3,8 +3,10 @@ import MenuIcon from '@mui/icons-material/Menu';
 import NotificationsOutlinedIcon from '@mui/icons-material/NotificationsOutlined';
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined';
 import LogoutIcon from '@mui/icons-material/Logout';
+import { useQuery } from '@tanstack/react-query';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
+import { getRagStatus } from '../../lib/api';
 import { tokens } from '../../theme';
 import { SIDEBAR_WIDTH } from './Sidebar';
 
@@ -24,9 +26,11 @@ export function TopBar({ onMenuClick }: TopBarProps) {
   const { user, logout } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const ragStatusQuery = useQuery({ queryKey: ['system', 'rag-status'], queryFn: getRagStatus });
 
   const page = pageConfig[pathname] ?? { title: 'Bench Allocator', subtitle: '' };
   const initials = user?.name?.split(' ').map((n) => n[0]).join('').slice(0, 2) ?? 'DM';
+  const ragLabel = ragStatusQuery.data ? `RAG: ${ragStatusQuery.data.retrievalMode}` : 'RAG: ...';
 
   return (
     <AppBar
@@ -63,18 +67,40 @@ export function TopBar({ onMenuClick }: TopBarProps) {
 
         {/* Status chip */}
         {!isMobile && (
-          <Chip
-            label="● Live"
-            size="small"
-            sx={{
-              bgcolor: `${tokens.colors.success}15`,
-              color: tokens.colors.success,
-              fontWeight: 600,
-              fontSize: '0.7rem',
-              border: `1px solid ${tokens.colors.success}30`,
-              '& .MuiChip-label': { px: 1.25 },
-            }}
-          />
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <Chip
+              label="● Live"
+              size="small"
+              sx={{
+                bgcolor: `${tokens.colors.success}15`,
+                color: tokens.colors.success,
+                fontWeight: 600,
+                fontSize: '0.7rem',
+                border: `1px solid ${tokens.colors.success}30`,
+                '& .MuiChip-label': { px: 1.25 },
+              }}
+            />
+            <Tooltip
+              title={
+                ragStatusQuery.data
+                  ? `Mode: ${ragStatusQuery.data.mode} · Indexed chunks: ${ragStatusQuery.data.indexedChunks}`
+                  : 'Loading RAG status'
+              }
+            >
+              <Chip
+                label={ragLabel}
+                size="small"
+                sx={{
+                  bgcolor: `${tokens.colors.primary}10`,
+                  color: tokens.colors.primary,
+                  fontWeight: 600,
+                  fontSize: '0.7rem',
+                  border: `1px solid ${tokens.colors.primary}20`,
+                  '& .MuiChip-label': { px: 1.25 },
+                }}
+              />
+            </Tooltip>
+          </Box>
         )}
 
         {/* Action icons */}
@@ -110,7 +136,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
           </Tooltip>
 
           <Tooltip title="Sign out">
-            <IconButton size="small" onClick={logout} sx={{ color: tokens.colors.textTertiary, '&:hover': { color: tokens.colors.danger, bgcolor: `${tokens.colors.danger}10` } }}>
+            <IconButton size="small" onClick={() => { void logout(); }} sx={{ color: tokens.colors.textTertiary, '&:hover': { color: tokens.colors.danger, bgcolor: `${tokens.colors.danger}10` } }}>
               <LogoutIcon fontSize="small" />
             </IconButton>
           </Tooltip>
@@ -119,4 +145,3 @@ export function TopBar({ onMenuClick }: TopBarProps) {
     </AppBar>
   );
 }
-
