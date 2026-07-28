@@ -133,7 +133,25 @@ export interface ChatQueryResponse {
   answer: string;
   recommendations: Recommendation[];
   evidenceSnippets: string[];
+  citations?: string[];
+  retrievalMode?: 'local' | 'cloud';
   messageId: string;
+}
+
+export interface RagStatusResponse {
+  mode: 'local' | 'cloud' | 'hybrid';
+  retrievalMode: 'local' | 'cloud';
+  indexedChunks: number;
+  employeeChunks: number;
+  projectNeedChunks: number;
+  allocationChunks: number;
+  cloudConfigured: boolean;
+}
+
+export interface RagReindexResponse {
+  status: 'ok';
+  indexedChunks: number;
+  retrievalMode: 'local' | 'cloud';
 }
 
 export interface AssignRequest {

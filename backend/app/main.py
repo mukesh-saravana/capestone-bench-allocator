@@ -26,6 +26,8 @@ from .models import (
     LoginRequest,
     LoginResponse,
     ProjectNeed,
+    RagReindexResponse,
+    RagStatusResponse,
     RecommendationRequest,
     RecommendationResponse,
     SkillTag,
@@ -36,15 +38,18 @@ from .models import (
     UtilizationMetrics,
     UtilizationTrendPoint,
 )
+from .rag import RAGService
 from .settings import get_settings
 from .services import recommend, recommend_from_query
 
 settings = get_settings()
+rag_service = RAGService(store=store, settings=settings)
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     store.initialize()
+    rag_service.refresh_index()
     yield
 
 
@@ -81,6 +86,20 @@ def get_current_user(
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/api/rag/status", response_model=RagStatusResponse)
+def rag_status(current_user: User = Depends(get_current_user)) -> RagStatusResponse:
+    _ = current_user
+    return RagStatusResponse(**rag_service.status())
+
+
+@app.post("/api/rag/reindex", response_model=RagReindexResponse)
+def rag_reindex(current_user: User = Depends(get_current_user)) -> RagReindexResponse:
+    _ = current_user
+    rag_service.refresh_index()
+    state = rag_service.status()
+    return RagReindexResponse(status="ok", indexedChunks=int(state["indexedChunks"]), retrievalMode=str(state["retrievalMode"]))
 
 
 @app.post("/api/auth/login", response_model=LoginResponse)
@@ -395,6 +414,7 @@ async def import_dataset(dataset_key: str, file: UploadFile = File(...), current
         result = store.import_allocation_history(rows, file_name)
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Unsupported dataset '{dataset_key}'")
+    rag_service.refresh_index()
     return CandidateImportResult(**result)
 
 
@@ -421,13 +441,32 @@ def chat_query(payload: ChatQueryRequest, current_user: User = Depends(get_curre
     )
     recommendations = recommendation_response.recommendations
     top_names = ", ".join(rec.employee.name for rec in recommendations[:3]) if recommendations else "No matching candidates"
-    answer = f"For '{payload.query}', top candidates are: {top_names}."
-    evidence = [snippet for rec in recommendations for snippet in rec.evidenceSnippets][:3]
+    try:
+        rag_context = rag_service.retrieve(
+            query=payload.query,
+            department=(payload.filters.department if payload.filters else None),
+            top_k=3,
+        )
+    except RuntimeError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"RAG retrieval failed: {exc}") from exc
+
+    answer = f"For '{payload.query}', top candidates are: {top_names}. Retrieval mode: {rag_context.mode}."
+    evidence: list[str] = []
+    seen_snippets: set[str] = set()
+    for snippet in [*rag_context.snippets, *(snippet for rec in recommendations for snippet in rec.evidenceSnippets)]:
+        if snippet in seen_snippets:
+            continue
+        seen_snippets.add(snippet)
+        evidence.append(snippet)
+        if len(evidence) >= 5:
+            break
     _ = current_user
     return ChatQueryResponse(
         answer=answer,
         recommendations=recommendations,
         evidenceSnippets=evidence,
+        citations=rag_context.citations,
+        retrievalMode=rag_context.mode,
         messageId=f"msg-{uuid4()}",
     )
 
@@ -511,12 +550,14 @@ def create_allocation(payload: AssignRequest, current_user: User = Depends(get_c
     if payload.projectNeedId not in store.project_needs:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project need not found")
     try:
-        return store.create_allocation(
+        allocation = store.create_allocation(
             employee_id=payload.employeeId,
             project_need_id=payload.projectNeedId,
             role=payload.role,
             start_date=payload.startDate,
             notes=payload.notes,
         )
+        rag_service.refresh_index()
+        return allocation
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc

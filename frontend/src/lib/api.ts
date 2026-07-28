@@ -11,6 +11,8 @@ import type {
   Employee,
   LoginResponse,
   ProjectNeed,
+  RagReindexResponse,
+  RagStatusResponse,
   RecommendationRequest,
   RecommendationResponse,
   SkillTag,
@@ -117,4 +119,14 @@ export async function updateSkillTag(skillId: string, payload: { name: string; c
 
 export async function deleteSkillTag(skillId: string): Promise<void> {
   await apiClient.delete(`/api/settings/skills/${skillId}`);
+}
+
+export async function getRagStatus(): Promise<RagStatusResponse> {
+  const { data } = await apiClient.get<RagStatusResponse>('/api/rag/status');
+  return data;
+}
+
+export async function reindexRag(): Promise<RagReindexResponse> {
+  const { data } = await apiClient.post<RagReindexResponse>('/api/rag/reindex');
+  return data;
 }

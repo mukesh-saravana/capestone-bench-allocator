@@ -146,7 +146,33 @@ def test_chat_query_returns_recommendations() -> None:
     body = response.json()
     assert body["recommendations"]
     assert body["answer"]
+    assert body["retrievalMode"] == "local"
+    assert body["citations"]
+    assert body["evidenceSnippets"]
+    assert body["evidenceSnippets"][0].startswith("[")
     assert body["messageId"].startswith("msg-")
+
+
+def test_rag_status_and_reindex_endpoints() -> None:
+    headers = login_headers()
+
+    status_response = client.get("/api/rag/status", headers=headers)
+    assert status_response.status_code == 200
+    status_body = status_response.json()
+    assert status_body["mode"] == "hybrid"
+    assert status_body["retrievalMode"] == "local"
+    assert status_body["indexedChunks"] >= 1
+    assert status_body["employeeChunks"] >= 1
+    assert status_body["projectNeedChunks"] >= 1
+    assert status_body["allocationChunks"] >= 1
+    assert status_body["cloudConfigured"] is False
+
+    reindex_response = client.post("/api/rag/reindex", headers=headers)
+    assert reindex_response.status_code == 200
+    reindex_body = reindex_response.json()
+    assert reindex_body["status"] == "ok"
+    assert reindex_body["indexedChunks"] == status_body["indexedChunks"]
+    assert reindex_body["retrievalMode"] == "local"
 
 
 def test_allocation_creation_updates_state() -> None:

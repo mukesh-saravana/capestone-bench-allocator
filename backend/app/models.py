@@ -157,7 +157,25 @@ class ChatQueryResponse(BaseModel):
     answer: str
     recommendations: list[Recommendation]
     evidenceSnippets: list[str]
+    citations: list[str] = []
+    retrievalMode: str | None = None
     messageId: str
+
+
+class RagStatusResponse(BaseModel):
+    mode: str
+    retrievalMode: str
+    indexedChunks: int
+    employeeChunks: int
+    projectNeedChunks: int
+    allocationChunks: int
+    cloudConfigured: bool
+
+
+class RagReindexResponse(BaseModel):
+    status: str
+    indexedChunks: int
+    retrievalMode: str
 
 
 class RecommendationRequest(BaseModel):

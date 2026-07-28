@@ -93,6 +93,10 @@ You can create `backend/.env` (recommended):
 BACKEND_DATABASE_URL=sqlite:///./bench_allocator.db
 BACKEND_CORS_ORIGIN=http://localhost:5173
 BACKEND_AUTH_COOKIE_NAME=auth_token
+BACKEND_RAG_MODE=hybrid
+BACKEND_RAG_OPENAI_API_KEY=
+BACKEND_RAG_OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+BACKEND_RAG_CLOUD_TIMEOUT_SECONDS=20
 ```
 
 ### PostgreSQL example
@@ -101,7 +105,22 @@ BACKEND_AUTH_COOKIE_NAME=auth_token
 BACKEND_DATABASE_URL=postgresql+psycopg://postgres:postgres@localhost:5432/bench_allocator
 BACKEND_CORS_ORIGIN=http://localhost:5173
 BACKEND_AUTH_COOKIE_NAME=auth_token
+BACKEND_RAG_MODE=hybrid
+BACKEND_RAG_OPENAI_API_KEY=<your-key>
+BACKEND_RAG_OPENAI_EMBEDDING_MODEL=text-embedding-3-small
+BACKEND_RAG_CLOUD_TIMEOUT_SECONDS=20
 ```
+
+### RAG mode behavior
+
+- `BACKEND_RAG_MODE=local`: always uses local lexical retrieval.
+- `BACKEND_RAG_MODE=cloud`: always uses OpenAI embeddings (requires `BACKEND_RAG_OPENAI_API_KEY`).
+- `BACKEND_RAG_MODE=hybrid` (recommended): uses cloud retrieval when key is configured, otherwise local retrieval.
+
+### RAG admin endpoints
+
+- `GET /api/rag/status` — shows current RAG mode, chunk counts, and whether cloud embeddings are configured.
+- `POST /api/rag/reindex` — rebuilds the in-memory retrieval index after data changes.
 
 ---
 
@@ -152,12 +171,12 @@ Tests use a separate test database file under `backend/tests/`.
 ### C. Chat flow
 
 1. Frontend sends query to `POST /api/chat/query`
-2. Backend infers skills from query
+2. Backend retrieves contextual evidence with RAG from employee, project-need, and allocation data
 3. Recommendation engine runs
 4. Backend returns:
    - answer text
    - recommendations
-   - evidence snippets
+   - evidence snippets + citations
 
 ### D. Dashboard flow
 

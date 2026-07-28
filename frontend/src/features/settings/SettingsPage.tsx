@@ -2,7 +2,7 @@ import {
   Box, Paper, Tabs, Tab, Typography, Switch, FormControlLabel,
   Radio, RadioGroup, FormControl, FormLabel, Button, Divider,
   Table, TableBody, TableCell, TableHead, TableRow, Chip, IconButton,
-  CircularProgress, TextField,
+  CircularProgress, TextField, Card, CardContent,
 } from '@mui/material';
 import { useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -13,7 +13,17 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import DownloadIcon from '@mui/icons-material/Download';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { tokens } from '../../theme';
-import { createSkillTag, deleteSkillTag, exportCandidates, getDataSummary, getSkillTags, importDataset, updateSkillTag } from '../../lib/api';
+import {
+  createSkillTag,
+  deleteSkillTag,
+  exportCandidates,
+  getDataSummary,
+  getRagStatus,
+  getSkillTags,
+  importDataset,
+  reindexRag,
+  updateSkillTag,
+} from '../../lib/api';
 import { useToast } from '../../store/ToastContext';
 import type { DataSetSummary, SkillTag } from '../../types';
 
@@ -78,6 +88,7 @@ export function SettingsPage() {
 
   const summaryQuery = useQuery({ queryKey: ['settings', 'data-summary'], queryFn: getDataSummary });
   const skillTagsQuery = useQuery({ queryKey: ['settings', 'skills'], queryFn: getSkillTags });
+  const ragStatusQuery = useQuery({ queryKey: ['settings', 'rag-status'], queryFn: getRagStatus });
   const importMutation = useMutation({
     mutationFn: ({ datasetKey, file }: { datasetKey: string; file: File }) => importDataset(datasetKey, file),
     onSuccess: async (result) => {
@@ -87,6 +98,7 @@ export function SettingsPage() {
         queryClient.invalidateQueries({ queryKey: ['recommendations'] }),
         queryClient.invalidateQueries({ queryKey: ['dashboard', 'bench'] }),
         queryClient.invalidateQueries({ queryKey: ['dashboard', 'utilization'] }),
+        queryClient.invalidateQueries({ queryKey: ['settings', 'rag-status'] }),
       ]);
       showToast(
         `Import completed for ${result.dataset}: ${result.imported} added, ${result.updated} updated, ${result.skipped} skipped`,
@@ -145,6 +157,17 @@ export function SettingsPage() {
     },
     onError: () => {
       showToast('Failed to delete skill tag.', 'error');
+    },
+  });
+
+  const reindexRagMutation = useMutation({
+    mutationFn: reindexRag,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['settings', 'rag-status'] });
+      showToast('RAG index rebuilt.', 'success');
+    },
+    onError: () => {
+      showToast('Failed to rebuild RAG index.', 'error');
     },
   });
 
@@ -233,6 +256,7 @@ export function SettingsPage() {
           <Tab label="General" />
           <Tab label="Skill Tags" />
           <Tab label="Data Management" />
+          <Tab label="RAG Admin" />
           <Tab label="Notifications" />
         </Tabs>
 
@@ -433,6 +457,64 @@ export function SettingsPage() {
           )}
 
           {tab === 3 && (
+            <Box sx={{ maxWidth: 760 }}>
+              <Typography variant="h3" sx={{ mb: 2 }}>RAG Admin</Typography>
+              <Typography variant="body2" sx={{ mb: 2, color: tokens.colors.textTertiary }}>
+                Monitor the retrieval index and rebuild it after imports or other data changes.
+              </Typography>
+
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
+                {[
+                  { label: 'Mode', value: ragStatusQuery.data?.mode ?? '—' },
+                  { label: 'Retrieval', value: ragStatusQuery.data?.retrievalMode ?? '—' },
+                  { label: 'Indexed chunks', value: `${ragStatusQuery.data?.indexedChunks ?? '—'}` },
+                  { label: 'Cloud configured', value: ragStatusQuery.data?.cloudConfigured ? 'Yes' : 'No' },
+                ].map(({ label, value }) => (
+                  <Card key={label} sx={{ minWidth: 160, flex: '1 1 160px', bgcolor: tokens.colors.neutral }}>
+                    <CardContent sx={{ py: '12px !important', px: 2 }}>
+                      <Typography variant="body2">{label}</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 600, color: tokens.colors.primary }}>
+                        {value}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                ))}
+              </Box>
+
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
+                <Typography variant="body2">Employee chunks: {ragStatusQuery.data?.employeeChunks ?? '—'}</Typography>
+                <Typography variant="body2">Project need chunks: {ragStatusQuery.data?.projectNeedChunks ?? '—'}</Typography>
+                <Typography variant="body2">Allocation chunks: {ragStatusQuery.data?.allocationChunks ?? '—'}</Typography>
+              </Box>
+
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <Button
+                  variant="contained"
+                  onClick={() => void reindexRagMutation.mutateAsync()}
+                  disabled={reindexRagMutation.isPending}
+                  startIcon={reindexRagMutation.isPending ? <CircularProgress size={16} color="inherit" /> : undefined}
+                >
+                  Rebuild RAG Index
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  onClick={() => void ragStatusQuery.refetch()}
+                  disabled={ragStatusQuery.isFetching}
+                >
+                  Refresh Status
+                </Button>
+              </Box>
+
+              {ragStatusQuery.isError && (
+                <Typography color="error" sx={{ mt: 2 }}>
+                  Failed to load RAG status.
+                </Typography>
+              )}
+            </Box>
+          )}
+
+          {tab === 4 && (
             <Box sx={{ maxWidth: 480 }}>
               <Typography variant="h3" sx={{ mb: 2 }}>Notifications</Typography>
               <FormControlLabel
