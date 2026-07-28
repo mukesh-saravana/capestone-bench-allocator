@@ -24,15 +24,18 @@ interface MetricCardProps {
   action?: ReactNode;
   children?: ReactNode;
   sx?: SxProps;
+  onClick?: () => void;
 }
 
-export function MetricCard({ title, value, subtitle, accent = 'none', icon, trend, action, children, sx }: MetricCardProps) {
+export function MetricCard({ title, value, subtitle, accent = 'none', icon, trend, action, children, sx, onClick }: MetricCardProps) {
   const cfg = accentConfig[accent];
   const hasTrend = trend !== undefined;
   const trendUp = (trend?.value ?? 0) >= 0;
+  const isClickable = !!onClick;
 
   return (
     <Box
+      onClick={onClick}
       sx={{
         bgcolor: 'white',
         border: `1px solid ${tokens.colors.border}`,
@@ -42,7 +45,12 @@ export function MetricCard({ title, value, subtitle, accent = 'none', icon, tren
         transition: 'all 220ms ease',
         height: '100%',
         display: 'flex', flexDirection: 'column',
-        '&:hover': { boxShadow: tokens.shadows.md, transform: 'translateY(-2px)' },
+        cursor: isClickable ? 'pointer' : 'default',
+        '&:hover': isClickable ? {
+          boxShadow: tokens.shadows.md,
+          transform: 'translateY(-2px)',
+          borderColor: `${tokens.colors.primary}30`,
+        } : { boxShadow: tokens.shadows.md, transform: 'translateY(-2px)' },
         ...sx,
       }}
     >
@@ -103,6 +111,22 @@ export function MetricCard({ title, value, subtitle, accent = 'none', icon, tren
 
         {/* Child content (charts, progress bars) */}
         {children && <Box sx={{ mt: 1.5, flex: 1 }}>{children}</Box>}
+
+        {/* Clickable affordance */}
+        {isClickable && (
+          <Box sx={{
+            mt: 'auto', pt: 1,
+            display: 'flex', alignItems: 'center', gap: 0.5,
+            opacity: 0,
+            transition: `opacity ${tokens.motion.duration.fast} ${tokens.motion.easing.smooth}`,
+            '.MuiBox-root:hover > * > &': { opacity: 1 },
+          }}>
+            <Typography sx={{ fontSize: '0.68rem', fontWeight: 600, color: tokens.colors.primary }}>View details</Typography>
+            <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: `${tokens.colors.primary}20`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Box sx={{ width: 4, height: 4, borderTop: `1.5px solid ${tokens.colors.primary}`, borderRight: `1.5px solid ${tokens.colors.primary}`, transform: 'rotate(45deg)', ml: '-1px' }} />
+            </Box>
+          </Box>
+        )}
       </Box>
     </Box>
   );

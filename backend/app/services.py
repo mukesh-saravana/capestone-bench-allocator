@@ -64,9 +64,14 @@ def _extract_skills_from_project_names(query: str) -> list[str]:
 
 def _infer_top_k(query: str, default: int = 3) -> int:
     query_lower = query.lower()
-    if any(marker in query_lower for marker in ("single best", "best candidate", "single candidate", "one best", "top candidate", "first candidate")):
+    if any(marker in query_lower for marker in (
+        "single best", "best candidate", "single candidate", "one best", "top candidate", "first candidate",
+        "give me one", "show me one", "find me one", "get me one", "just one", "one candidate",
+    )):
         return 1
     if re.search(r"\bonly one\b", query_lower):
+        return 1
+    if re.search(r"\bgive\s+me\s+a\s+(?:single|one)\b", query_lower):
         return 1
     match = re.search(r"\btop\s+(\d+)\b", query_lower)
     if match:
@@ -162,7 +167,28 @@ def recommend(
     return RecommendationResponse(recommendations=recommendations[:top_k], generatedAt=datetime.now(UTC))
 
 
-def recommend_from_query(*, query: str, strategy: Strategy, department: str | None, evidence_snippets: list[str] | None = None) -> RecommendationResponse:
+def recommend_from_query(
+    *,
+    query: str,
+    strategy: Strategy,
+    department: str | None,
+    evidence_snippets: list[str] | None = None,
+    planner: object | None = None,
+) -> RecommendationResponse:
+    # Try LLM-based intent extraction first
+    if planner is not None:
+        from .planner import QueryPlanner  # noqa: PLC0415
+        if isinstance(planner, QueryPlanner) and planner.enabled:
+            intent = planner.plan(query)
+            if intent is not None:
+                return recommend(
+                    required_skills=intent.skills or ["React"],
+                    department=intent.department or department,
+                    strategy=intent.strategy,  # type: ignore[arg-type]
+                    top_k=intent.top_k,
+                )
+
+    # Fallback: regex-based intent extraction
     snippets = evidence_snippets or []
     inferred_skills = _extract_known_skills(query)
     inferred_skills.extend(skill for skill in _extract_skills_from_project_names(query) if skill not in inferred_skills)

@@ -39,11 +39,13 @@ from .models import (
     UtilizationTrendPoint,
 )
 from .rag import RAGService
+from .planner import QueryPlanner
 from .settings import get_settings
 from .services import recommend, recommend_from_query
 
 settings = get_settings()
 rag_service = RAGService(store=store, settings=settings)
+query_planner = QueryPlanner(settings=settings)
 
 
 @asynccontextmanager
@@ -91,7 +93,15 @@ def health() -> dict[str, str]:
 @app.get("/api/rag/status", response_model=RagStatusResponse)
 def rag_status(current_user: User = Depends(get_current_user)) -> RagStatusResponse:
     _ = current_user
-    return RagStatusResponse(**rag_service.status())
+    rag_state = rag_service.status()
+    llm_mode = settings.llm_mode.strip().lower()
+    llm_model = settings.llm_local_model if llm_mode == "local" else (settings.llm_cloud_model if llm_mode == "cloud" else "")
+    return RagStatusResponse(
+        **rag_state,
+        llmMode=llm_mode,
+        llmEnabled=query_planner.enabled,
+        llmModel=llm_model,
+    )
 
 
 @app.post("/api/rag/reindex", response_model=RagReindexResponse)
@@ -450,6 +460,7 @@ def chat_query(payload: ChatQueryRequest, current_user: User = Depends(get_curre
         strategy=payload.strategy,
         department=(payload.filters.department if payload.filters else None),
         evidence_snippets=rag_context.snippets,
+        planner=query_planner,
     )
     recommendations = recommendation_response.recommendations
     top_k = len(recommendations)

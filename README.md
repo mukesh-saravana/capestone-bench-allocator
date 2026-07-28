@@ -83,16 +83,25 @@ The project has moved from planning into active implementation.
 
 ### Completed
 
-- Frontend MVP implemented in `frontend/` using React + Vite + TypeScript + MUI
+- Frontend MVP implemented in `frontend/` using React + Vite + TypeScript + MUI v9
 - Protected login flow and route-based app shell
 - Screens delivered: Login, Dashboard, Chat Assistant, Recommendations, Settings
 - Candidate Profile and Assignment Confirmation modals
 - Loading, empty, and toast feedback states
 - Modernized UI pass: dark-gradient sidebar, glass-style topbar, modern cards, smooth transitions
-- Global motion system with page-level transitions and reduced-motion support
+- Global motion system with page-level transitions and reduced-motion support (via `framer-motion`)
 - Hybrid RAG-assisted chat and recommendation flow wired end-to-end
 - RAG admin/status controls in Settings plus live RAG mode chip in the top bar
 - Dashboard element/data documentation added for charts and summary cards
+- Dashboard welcome banner with time-of-day greeting, live key stats, and staggered card entrance animations
+- Redesigned Chat UI: AI avatar, animated message bubbles, asymmetric chat layout, animated empty state, live snapshot context panel, and "Pro Tips" card
+- Sidebar user profile card showing logged-in user's name, role, and online indicator
+- Extended MUI theme overrides: Dialog glassmorphism, Alert, LinearProgress, Tooltip, Skeleton, Divider, Select, Badge
+- Clickable dashboard metric cards with animated "View details" affordance that open a drill-down detail drawer
+- `DashboardDrawer` — contextual right-side drawer showing bench list, utilization breakdown, allocation feed, and employee/project detail views
+- `DetailDrawer` — reusable right-side drawer shell (gradient header, back/close actions) used across dashboard and future screens
+- `CandidateCard` whole-card click to open profile (button-level actions still stop propagation)
+- Redesigned `ProfileModal`: dark gradient header, score circle with color-coded grade, "Best Match" chip for rank-1, proficiency bars for skills
 
 ### In Progress / Next
 

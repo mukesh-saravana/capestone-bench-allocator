@@ -170,6 +170,9 @@ class RagStatusResponse(BaseModel):
     projectNeedChunks: int
     allocationChunks: int
     cloudConfigured: bool
+    llmMode: str = "none"
+    llmEnabled: bool = False
+    llmModel: str = ""
 
 
 class RagReindexResponse(BaseModel):
