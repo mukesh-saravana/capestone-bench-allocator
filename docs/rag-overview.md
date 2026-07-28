@@ -42,8 +42,9 @@ The retrieval index is built from:
 1. The backend builds retrievable chunks from store data.
 2. A query comes in through `POST /api/chat/query`.
 3. RAG finds the most relevant chunks.
-4. The recommendation engine ranks candidates.
-5. The response returns:
+4. The query planner infers intent from the user request and retrieved context.
+5. The recommendation engine ranks candidates.
+6. The response returns:
    - answer text
    - recommendations
    - evidence snippets
@@ -72,6 +73,7 @@ And the UI shows:
 - retrieval mode
 - index counts
 - cloud configuration status
+- top bar also shows the active retrieval mode for fast visibility
 
 ## In short
 

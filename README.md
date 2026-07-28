@@ -46,6 +46,8 @@ The solution has two main parts:
 - `docs/scope.md`: clear boundaries of what is included in MVP
 - `docs/technical-design.md`: selected architecture pattern, stack, and system design
 - `docs/DESIGN-PLAN.md`: detailed UI/UX plan and implementation roadmap
+- `docs/rag-overview.md`: how RAG works in this app and why it matters
+- `docs/dashboard-elements-and-data.md`: dashboard cards/charts and their data sources
 - `frontend/`: React + Vite + TypeScript application (implemented MVP UI)
 - `backend/`: FastAPI backend API scaffold for auth, chat, recommendations, dashboard, and allocations
 - `backend/README.md`: detailed backend setup, tools install, environment, and API flow guide
@@ -88,12 +90,15 @@ The project has moved from planning into active implementation.
 - Loading, empty, and toast feedback states
 - Modernized UI pass: dark-gradient sidebar, glass-style topbar, modern cards, smooth transitions
 - Global motion system with page-level transitions and reduced-motion support
+- Hybrid RAG-assisted chat and recommendation flow wired end-to-end
+- RAG admin/status controls in Settings plus live RAG mode chip in the top bar
+- Dashboard element/data documentation added for charts and summary cards
 
 ### In Progress / Next
 
-- Backend API scaffold implemented (`backend/app/main.py`) and ready for frontend integration
-- RAG service hookup for live chat/recommendation responses
-- Persisted data and settings workflows
+- Backend API and frontend are integrated for the core staffing workflow
+- Optional cloud LLM planner can be added later for more advanced query understanding
+- Persisted data and settings workflows can be extended further if needed
 
 For a non-technical walkthrough, see: **`frontend/flow.md`**
 
@@ -135,6 +140,8 @@ Available MVP endpoints:
 - `GET /api/dashboard/bench`
 - `GET /api/dashboard/utilization`
 - `GET /api/dashboard/allocations`
+- `GET /api/rag/status`
+- `POST /api/rag/reindex`
 - `POST /api/allocations`
 - `POST /api/import/{dataset_key}` (`candidate_profiles`, `employees`, `project_needs`, `allocation_history`)
 - `POST /api/import/candidates` (compatibility alias for candidate profiles)
@@ -146,6 +153,15 @@ Available MVP endpoints:
 - Backend setup (tools, env, run, testing, API flows): **`backend/README.md`**
 - Frontend + backend integration setup (end-to-end): **`docs/frontend-backend-integration-readme.md`**
 - Settings feature status (working vs pending): **`docs/settings-functionality-status.md`**
+
+## Documentation Index
+
+- `docs/scope.md` — MVP scope and boundaries
+- `docs/technical-design.md` — architecture and implementation design
+- `docs/rag-overview.md` — what RAG is and how it works in this app
+- `docs/dashboard-elements-and-data.md` — dashboard cards, charts, and data sources
+- `docs/frontend-backend-integration-readme.md` — how frontend and backend connect
+- `docs/settings-functionality-status.md` — current settings page status
 
 ## Import Samples
 

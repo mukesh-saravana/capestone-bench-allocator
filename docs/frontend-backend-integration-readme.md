@@ -111,17 +111,30 @@ Open the URL shown by Vite (usually `http://localhost:5173`).
 
 - `POST /api/chat/query`
 - reads supporting dashboard/project data endpoints
+- uses backend RAG context and query planning to infer the best staffing answer
 
 ### Recommendations page
 
 - `POST /api/recommendations`
 - `GET /api/project-needs`
 - `GET /api/allocation-history`
+- recommendation results are kept in sync after allocations and data imports
 
 ### Assignment modal
 
 - `POST /api/allocations`
 - then refetches related queries
+
+### Settings page
+
+- `GET /api/data/summary`
+- `GET /api/settings/skills`
+- `GET /api/rag/status`
+- `POST /api/rag/reindex`
+
+### Top bar
+
+- `GET /api/rag/status` for live RAG mode/status chip
 
 ---
 
@@ -134,9 +147,11 @@ Open the URL shown by Vite (usually `http://localhost:5173`).
 3. Confirm Dashboard loads data (no mock placeholders)
 4. Open Chat and send: `Find a React developer`
 5. Confirm recommendations are returned in chat
-6. Open Recommendations page and verify ranked list
-7. Assign a candidate
-8. Confirm success toast + refreshed dashboard/allocation data
+6. Try: `Give me a single best candidate for Alpha Commerce Platform`
+7. Confirm only one recommendation is returned for that request
+8. Open Recommendations page and verify ranked list
+9. Assign a candidate
+10. Confirm success toast + refreshed dashboard/allocation data
 
 ---
 

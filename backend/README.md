@@ -2,6 +2,15 @@
 
 This guide explains how to set up and run the backend in a clean, beginner-friendly way.
 
+## Docs index
+
+- `README.md` — backend setup, run, test, and API flow guide
+- `README.md` (root) — project overview and links to all docs
+- `docs/technical-design.md` — architecture and implementation design
+- `docs/rag-overview.md` — RAG behavior, controls, and rationale
+- `docs/dashboard-elements-and-data.md` — dashboard charts and retrieval sources
+- `docs/frontend-backend-integration-readme.md` — how frontend and backend connect
+
 ---
 
 ## 1) What this backend does

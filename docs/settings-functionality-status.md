@@ -1,6 +1,6 @@
 # Settings Functionality Status
 
-Last updated: 2026-07-27
+Last updated: 2026-07-28
 
 ## What is working
 
@@ -23,6 +23,7 @@ Last updated: 2026-07-27
 - Candidate export API is wired (`GET /api/export/candidates`).
 - Refresh summary button works and refetches server data.
 - Success/error toasts are shown for import/export actions.
+- RAG index is refreshed after imports so chat/recommendations use the latest data.
 
 ### Skill Tags tab
 - Skill tag list is fetched from backend (`GET /api/settings/skills`).
@@ -30,6 +31,12 @@ Last updated: 2026-07-27
 - Edit skill is wired (`PUT /api/settings/skills/{id}`).
 - Delete skill is wired (`DELETE /api/settings/skills/{id}`).
 - Refresh action and mutation feedback toasts are working.
+
+### RAG Admin tab
+- Current RAG mode and retrieval mode are fetched from backend (`GET /api/rag/status`).
+- Chunk counts for employees, project needs, and allocations are shown.
+- Rebuild action is wired (`POST /api/rag/reindex`).
+- Top bar also shows live RAG mode/status for quick visibility.
 
 ### Notifications tab
 - Toggle controls and frequency selector are interactive.
