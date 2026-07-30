@@ -143,7 +143,7 @@
   - Skills (pill-style tags)
 - **Score**: Large number + visual gauge (0-10 scale)
 - **Explanation Tooltip** (on hover):
-  - "Score based on skill match (6.0), project experience (2.2), availability (1.0)"
+  - "Score based on weighted contributions: skill match (5.1), project experience (1.8), availability (2.0)"
 - **Action Buttons**: 
   - "View Profile" (outline button)
   - "Assign" (solid blue button)

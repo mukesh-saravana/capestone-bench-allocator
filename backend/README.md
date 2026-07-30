@@ -230,11 +230,13 @@ Tests use a separate test database file under `backend/tests/`.
 ### B. Recommendations flow
 
 1. Frontend sends project need/skills to `POST /api/recommendations`
-2. Backend scores candidates by:
+2. Backend computes a normalized score out of 10 using weighted factors:
    - skill match
    - experience
    - availability/utilization
+   - each factor is normalized to 0-1, multiplied by strategy weight, and scaled to 10
 3. Backend returns ranked candidates + score breakdown + reasons
+   - `scoreBreakdown` values are weighted contributions that approximately sum to the total score
 
 ### C. Chat flow
 

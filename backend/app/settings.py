@@ -14,12 +14,16 @@ class Settings(BaseSettings):
     rag_openai_embedding_model: str = "text-embedding-3-small"
     rag_cloud_timeout_seconds: float = 20.0
     # Local LLM query planner (Ollama)
-    llm_mode: str = "none"  # none | local | cloud (cloud = OpenAI chat completions)
+    llm_mode: str = "none"  # none | local | cloud | github
+    # local = Ollama; cloud = OpenAI; github = GitHub Models (Copilot-compatible, free with GH PAT)
     llm_local_url: str = "http://localhost:11434"
     llm_local_model: str = "llama3.2"
     llm_cloud_openai_api_key: str | None = None
     llm_cloud_model: str = "gpt-4o-mini"
-    llm_timeout_seconds: float = 10.0
+    # GitHub Models (https://github.com/marketplace/models) — free tier with GitHub PAT
+    llm_github_token: str | None = None
+    llm_github_model: str = "gpt-4o-mini"
+    llm_timeout_seconds: float = 30.0
 
     model_config = SettingsConfigDict(env_prefix="BACKEND_", env_file=".env", extra="ignore")
 

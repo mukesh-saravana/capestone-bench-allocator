@@ -123,6 +123,7 @@ What you see:
 - filter bar (search, department, sort)
 - ranked candidate cards
 - candidate score and reason context
+- score breakdown values as weighted contributions that sum to the displayed 0-10 total
 
 Actions available:
 

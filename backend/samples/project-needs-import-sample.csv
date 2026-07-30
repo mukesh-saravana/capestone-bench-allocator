@@ -1,4 +1,4 @@
 need_id,project_id,project_name,role_title,open_slots,required_skills,start_date,status,priority
-need-101,prj-101,Bench Insights Revamp,Backend Engineer,2,Python|FastAPI|SQL,2026-08-01,open,high
-need-102,prj-102,Workforce Analytics Dashboard,Frontend Engineer,1,React|TypeScript|Charts,2026-08-05,open,medium
-need-103,prj-103,Cloud Migration Initiative,DevOps Engineer,1,AWS|Terraform|CI/CD,2026-08-10,filled,low
+need-101,prj-101,Bench Insights Revamp,Backend Engineer,2,Python|FastAPI|SQL,8/1/2026,open,high
+need-102,prj-102,Workforce Analytics Dashboard,Frontend Engineer,1,React|TypeScript|Charts,8/5/2026,open,medium
+need-103,prj-103,Cloud Migration Initiative,DevOps Engineer,1,AWS|Terraform|CI/CD,8/10/2026,filled,low
