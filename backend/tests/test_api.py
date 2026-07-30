@@ -48,6 +48,13 @@ def test_recommendations_rank_react_candidate() -> None:
     assert body["recommendations"], "Expected at least one recommendation"
     top = body["recommendations"][0]
     assert top["rank"] == 1
+    assert 0.0 <= top["score"] <= 10.0
+    breakdown_total = (
+        top["scoreBreakdown"]["skillMatch"]
+        + top["scoreBreakdown"]["projectExperience"]
+        + top["scoreBreakdown"]["availability"]
+    )
+    assert abs(breakdown_total - top["score"]) <= 0.05
     # Top candidate must have both React and TypeScript skills
     skill_names = {s["skill"]["name"] for s in top["employee"]["skills"]}
     assert "React" in skill_names

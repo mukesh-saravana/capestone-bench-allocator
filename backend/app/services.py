@@ -14,6 +14,10 @@ STRATEGY_WEIGHTS: dict[Strategy, tuple[float, float, float]] = {
     "hybrid": (0.55, 0.2, 0.25),
 }
 
+MAX_SKILL_SCORE = 6.0
+MAX_EXPERIENCE_SCORE = 2.5
+MAX_AVAILABILITY_SCORE = 2.0
+
 
 @dataclass
 class SkillRequirement:
@@ -273,10 +277,16 @@ def recommend(
             matched = []
             skill_score = 3.0
 
-        experience_score = min(2.5, (employee.experienceYears / 8.0) * 2.5)
+        experience_score = min(MAX_EXPERIENCE_SCORE, (employee.experienceYears / 8.0) * MAX_EXPERIENCE_SCORE)
         availability_score = _availability_score(employee.availability, employee.utilizationPct)
+
+        # Normalize each component to 0-1 before applying strategy weights,
+        # then scale back to a 0-10 total score.
+        skill_weighted = (skill_score / MAX_SKILL_SCORE) * skill_weight * 10
+        experience_weighted = (experience_score / MAX_EXPERIENCE_SCORE) * experience_weight * 10
+        availability_weighted = (availability_score / MAX_AVAILABILITY_SCORE) * availability_weight * 10
         total = round(
-            (skill_score * skill_weight) + (experience_score * experience_weight) + (availability_score * availability_weight),
+            skill_weighted + experience_weighted + availability_weighted,
             2,
         )
 
@@ -311,9 +321,9 @@ def recommend(
                 rank=0,
                 score=total,
                 scoreBreakdown=ScoreBreakdown(
-                    skillMatch=round(skill_score, 2),
-                    projectExperience=round(experience_score, 2),
-                    availability=round(availability_score, 2),
+                    skillMatch=round(skill_weighted, 2),
+                    projectExperience=round(experience_weighted, 2),
+                    availability=round(availability_weighted, 2),
                 ),
                 reasons=reasons,
                 evidenceSnippets=evidence,
