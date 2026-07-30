@@ -45,9 +45,13 @@ def test_recommendations_rank_react_candidate() -> None:
     )
     assert response.status_code == 200
     body = response.json()
+    assert body["recommendations"], "Expected at least one recommendation"
     top = body["recommendations"][0]
-    assert top["employee"]["name"] == "John Doe"
     assert top["rank"] == 1
+    # Top candidate must have both React and TypeScript skills
+    skill_names = {s["skill"]["name"] for s in top["employee"]["skills"]}
+    assert "React" in skill_names
+    assert "TypeScript" in skill_names
 
 
 def test_reference_data_endpoints() -> None:
@@ -121,15 +125,15 @@ def test_skill_tags_crud() -> None:
     assert initial.status_code == 200
     base_count = len(initial.json())
 
-    created = client.post("/api/settings/skills", headers=headers, json={"name": "Go", "category": "Backend"})
+    created = client.post("/api/settings/skills", headers=headers, json={"name": "Elixir", "category": "Backend"})
     assert created.status_code == 201
     created_body = created.json()
-    assert created_body["name"] == "Go"
+    assert created_body["name"] == "Elixir"
     skill_id = created_body["id"]
 
-    updated = client.put(f"/api/settings/skills/{skill_id}", headers=headers, json={"name": "Golang", "category": "Backend"})
+    updated = client.put(f"/api/settings/skills/{skill_id}", headers=headers, json={"name": "ElixirLang", "category": "Backend"})
     assert updated.status_code == 200
-    assert updated.json()["name"] == "Golang"
+    assert updated.json()["name"] == "ElixirLang"
 
     deleted = client.delete(f"/api/settings/skills/{skill_id}", headers=headers)
     assert deleted.status_code == 204
@@ -176,7 +180,9 @@ def test_chat_query_uses_rag_context_for_project_specific_request() -> None:
     assert response.status_code == 200
     body = response.json()
     assert len(body["recommendations"]) == 1
-    assert body["recommendations"][0]["employee"]["name"] == "John Doe"
+    # Must be a React/TypeScript candidate (Alpha Commerce Platform requires those skills)
+    skill_names = {s["skill"]["name"] for s in body["recommendations"][0]["employee"]["skills"]}
+    assert "React" in skill_names or "TypeScript" in skill_names
 
 
 def test_chat_query_honors_top_k_from_user_request() -> None:

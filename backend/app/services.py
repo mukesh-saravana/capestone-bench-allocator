@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import UTC, datetime
 import re
 
@@ -14,8 +15,121 @@ STRATEGY_WEIGHTS: dict[Strategy, tuple[float, float, float]] = {
 }
 
 
+@dataclass
+class SkillRequirement:
+    """A skill with an optional minimum years-of-experience constraint."""
+    name: str
+    min_years: int = 0  # 0 = no year constraint
+
+
 def _normalize_skill(skill: str) -> str:
     return skill.strip().lower()
+
+
+def _find_canonical_skill(skill_name: str, known_skills: set[str]) -> str | None:
+    """Case-insensitive lookup of a skill name against the known skill catalog."""
+    skill_lower = skill_name.lower()
+    for skill in known_skills:
+        if skill.lower() == skill_lower:
+            return skill
+    return None
+
+
+def _years_to_min_proficiency(years: int) -> int:
+    """Map years of experience to minimum proficiency level (1-5 scale)."""
+    if years <= 1:
+        return 1
+    if years <= 2:
+        return 2
+    if years <= 4:
+        return 3
+    if years <= 6:
+        return 4
+    return 5
+
+
+def _looks_like_skill(name: str) -> bool:
+    """Heuristic: does this token look like a technology/skill name vs. a common English word?"""
+    if len(name) < 2:
+        return False
+    # Contains at least one uppercase letter or tech-typical special char / digit
+    return bool(re.search(r"[A-Z]", name)) or bool(re.search(r"[.#+\d]", name))
+
+
+def _parse_skill_requirements(query: str) -> list[SkillRequirement]:
+    """
+    Parse NLP query into structured skill requirements.
+
+    Handles patterns such as:
+      - "3 years of PHP skill"
+      - "PHP with 2 years of experience"
+      - "candidate with 3 years of PHP and 2 years of AWS"
+
+    When year-based patterns are detected, the effective skill name is always
+    recorded (using the canonical catalog name when available, or the literal
+    string otherwise).  This ensures that unknown skills produce zero results
+    in strict all-match mode instead of silently falling back to an
+    unfiltered search.
+
+    Falls back to plain skill name extraction only when no year patterns are
+    found at all.
+    """
+    known_skills: set[str] = {
+        s.skill.name for emp in store.employees.values() for s in emp.skills
+    }
+    requirements: dict[str, SkillRequirement] = {}
+    year_patterns_found = False
+
+    _NOISE_WORDS = {
+        "skill", "skills", "experience", "expertise", "knowledge", "proficiency",
+        "the", "a", "an", "my", "your", "his", "her", "their", "its",
+        "work", "working", "exposure", "background",
+    }
+
+    # Pattern 1: "N years of SKILL [skill/experience]"
+    for match in re.finditer(
+        r"(\d+)\s+years?\s+(?:of\s+)?([A-Za-z][\w.+#-]*)",
+        query,
+        re.IGNORECASE,
+    ):
+        years = int(match.group(1))
+        raw_name = match.group(2).rstrip(".")
+        if raw_name.lower() in _NOISE_WORDS:
+            continue
+        canonical = _find_canonical_skill(raw_name, known_skills)
+        # Only accept the raw name when it looks like a genuine skill token
+        if not canonical and not _looks_like_skill(raw_name):
+            continue
+        year_patterns_found = True
+        effective_name = canonical or raw_name
+        key = effective_name.lower()
+        if key not in requirements or requirements[key].min_years < years:
+            requirements[key] = SkillRequirement(name=effective_name, min_years=years)
+
+    # Pattern 2: known "SKILL with N years" — restricted to catalog names to avoid false positives
+    for known_skill in sorted(known_skills, key=len, reverse=True):
+        m = re.search(
+            r"\b" + re.escape(known_skill) + r"\b\s+(?:with\s+)?(\d+)\s+years?",
+            query,
+            re.IGNORECASE,
+        )
+        if m:
+            years = int(m.group(1))
+            year_patterns_found = True
+            key = known_skill.lower()
+            if key not in requirements or requirements[key].min_years < years:
+                requirements[key] = SkillRequirement(name=known_skill, min_years=years)
+
+    # Return immediately when year patterns were found (even if some skills are unknown)
+    if year_patterns_found:
+        return list(requirements.values())
+
+    # Fallback: plain skill name extraction (no year constraint)
+    for skill in _extract_known_skills(query):
+        if skill.lower() not in requirements:
+            requirements[skill.lower()] = SkillRequirement(name=skill, min_years=0)
+
+    return list(requirements.values())
 
 
 def _extract_known_skills(query: str) -> list[str]:
@@ -96,12 +210,30 @@ def _availability_score(availability: str, utilization_pct: int) -> float:
 def recommend(
     *,
     required_skills: list[str] | None,
+    skill_requirements: list[SkillRequirement] | None = None,
     department: str | None,
     strategy: Strategy,
     top_k: int = 5,
 ) -> RecommendationResponse:
-    required_skill_set = {_normalize_skill(skill) for skill in (required_skills or [])}
+    """
+    Return ranked candidates.
+
+    When *skill_requirements* is supplied the engine uses **strict** matching:
+    the candidate must possess **every** listed skill and meet the minimum
+    proficiency inferred from the requested years of experience.
+
+    When only *required_skills* is supplied the legacy **any-match** behaviour
+    is preserved (candidate needs at least one of the skills).
+    """
     skill_weight, experience_weight, availability_weight = STRATEGY_WEIGHTS[strategy]
+
+    # Build the effective requirement map for strict-mode queries
+    use_strict = skill_requirements is not None and len(skill_requirements) > 0
+    req_map: dict[str, SkillRequirement] = (
+        {_normalize_skill(r.name): r for r in skill_requirements}
+        if use_strict else {}
+    )
+    required_skill_set = {_normalize_skill(skill) for skill in (required_skills or [])}
 
     recommendations: list[Recommendation] = []
     for employee in store.employees.values():
@@ -111,13 +243,33 @@ def recommend(
             continue
 
         skill_map = {_normalize_skill(entry.skill.name): entry.proficiency for entry in employee.skills}
-        if required_skill_set:
+
+        if use_strict:
+            # Candidate MUST have ALL required skills at the minimum proficiency
+            matched_keys: list[str] = []
+            all_matched = True
+            for req_key, req in req_map.items():
+                if req_key not in skill_map:
+                    all_matched = False
+                    break
+                if req.min_years > 0 and skill_map[req_key] < _years_to_min_proficiency(req.min_years):
+                    all_matched = False
+                    break
+                matched_keys.append(req_key)
+            if not all_matched:
+                continue
+            average_proficiency = sum(skill_map[k] for k in matched_keys) / len(matched_keys) if matched_keys else 3.0
+            skill_score = min(6.0, average_proficiency * 1.2)
+            matched = matched_keys
+        elif required_skill_set:
+            # Legacy: any skill match is enough
             matched = [skill for skill in required_skill_set if skill in skill_map]
             if not matched:
                 continue
             average_proficiency = sum(skill_map[skill] for skill in matched) / len(required_skill_set)
             skill_score = min(6.0, average_proficiency * (len(matched) / len(required_skill_set)) * 1.2)
         else:
+            # No skill filter: return all available candidates
             matched = []
             skill_score = 3.0
 
@@ -131,6 +283,15 @@ def recommend(
         reasons = []
         if matched:
             reasons.append(f"Matched skills: {', '.join(sorted(skill.title() for skill in matched))}")
+        if use_strict:
+            for req in skill_requirements:  # type: ignore[union-attr]
+                norm = _normalize_skill(req.name)
+                if req.min_years > 0 and norm in skill_map:
+                    actual_prof = skill_map[norm]
+                    reasons.append(
+                        f"{req.name}: proficiency {actual_prof}/5 "
+                        f"(>={req.min_years}yr requirement met)"
+                    )
         reasons.append(f"{employee.experienceYears} years relevant experience")
         if employee.availability == "available":
             reasons.append("Currently on bench and immediately available")
@@ -174,25 +335,78 @@ def recommend_from_query(
     department: str | None,
     evidence_snippets: list[str] | None = None,
     planner: object | None = None,
+    precomputed_intent: object | None = None,
 ) -> RecommendationResponse:
     # Try LLM-based intent extraction first
     if planner is not None:
-        from .planner import QueryPlanner  # noqa: PLC0415
+        from .planner import QueryPlanner, QueryIntent  # noqa: PLC0415
         if isinstance(planner, QueryPlanner) and planner.enabled:
-            intent = planner.plan(query)
+            intent: QueryIntent | None = (
+                precomputed_intent  # type: ignore[assignment]
+                if isinstance(precomputed_intent, QueryIntent)
+                else planner.plan(query)
+            )
             if intent is not None:
+                # Build SkillRequirement list from LLM intent
+                skill_reqs: list[SkillRequirement] = [
+                    SkillRequirement(name=sr["name"], min_years=int(sr.get("min_years", 0) or 0))
+                    for sr in (intent.skill_requirements or [])
+                    if isinstance(sr, dict) and sr.get("name")
+                ]
+                if not skill_reqs and intent.skills:
+                    skill_reqs = [SkillRequirement(name=s, min_years=0) for s in intent.skills]
+                # Always use strict all-match from LLM — every listed skill must be present
                 return recommend(
-                    required_skills=intent.skills or ["React"],
+                    required_skills=None,
+                    skill_requirements=skill_reqs or None,
                     department=intent.department or department,
                     strategy=intent.strategy,  # type: ignore[arg-type]
                     top_k=intent.top_k,
                 )
 
-    # Fallback: regex-based intent extraction
+    # Fallback: NLP regex-based intent extraction
     snippets = evidence_snippets or []
-    inferred_skills = _extract_known_skills(query)
-    inferred_skills.extend(skill for skill in _extract_skills_from_project_names(query) if skill not in inferred_skills)
-    inferred_skills.extend(skill for skill in _extract_skills_from_snippets(snippets) if skill not in inferred_skills)
+    skill_reqs = _parse_skill_requirements(query)
+
+    # Enrich with project-name and snippet skills when no year-specific pattern was found
+    if not skill_reqs or not any(r.min_years > 0 for r in skill_reqs):
+        extra_skills = _extract_skills_from_project_names(query)
+        extra_skills.extend(s for s in _extract_skills_from_snippets(snippets) if s not in extra_skills)
+        known_keys = {r.name.lower() for r in skill_reqs}
+        for s in extra_skills:
+            if s.lower() not in known_keys:
+                skill_reqs.append(SkillRequirement(name=s, min_years=0))
+
     inferred_department = _infer_department(query, snippets, department)
     top_k = _infer_top_k(query)
-    return recommend(required_skills=inferred_skills or ["React"], department=inferred_department, strategy=strategy, top_k=top_k)
+
+    has_year_reqs = any(r.min_years > 0 for r in skill_reqs)
+
+    if has_year_reqs:
+        # Use strict all-match with proficiency filter when years are specified
+        return recommend(
+            required_skills=None,
+            skill_requirements=skill_reqs,
+            department=inferred_department,
+            strategy=strategy,
+            top_k=top_k,
+        )
+    elif skill_reqs:
+        # Use strict all-match even without year constraints so that multi-skill
+        # queries (e.g. "PHP and AWS") require the candidate to have ALL skills.
+        return recommend(
+            required_skills=None,
+            skill_requirements=skill_reqs,
+            department=inferred_department,
+            strategy=strategy,
+            top_k=top_k,
+        )
+    else:
+        # No skill filter: return all available candidates (e.g., "who's on the bench?")
+        return recommend(
+            required_skills=None,
+            skill_requirements=None,
+            department=inferred_department,
+            strategy=strategy,
+            top_k=top_k,
+        )

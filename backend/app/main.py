@@ -455,30 +455,83 @@ def chat_query(payload: ChatQueryRequest, current_user: User = Depends(get_curre
     except RuntimeError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"RAG retrieval failed: {exc}") from exc
 
-    recommendation_response = recommend_from_query(
-        query=payload.query,
-        strategy=payload.strategy,
-        department=(payload.filters.department if payload.filters else None),
-        evidence_snippets=rag_context.snippets,
-        planner=query_planner,
-    )
-    recommendations = recommendation_response.recommendations
-    top_k = len(recommendations)
-    top_names = ", ".join(rec.employee.name for rec in recommendations[:3]) if recommendations else "No matching candidates"
+    # Plan once so we can check is_staffing_query before doing candidate search
+    from .planner import QueryIntent  # noqa: PLC0415
+    precomputed_intent: QueryIntent | None = query_planner.plan(payload.query) if query_planner.enabled else None
 
-    if top_k == 1:
-        answer = f"For '{payload.query}', the best candidate is {top_names}. Retrieval mode: {rag_context.mode}."
+    # Skip candidate search for greetings / non-staffing messages
+    is_staffing = (precomputed_intent is None) or precomputed_intent.is_staffing_query
+    # Regex fallback: also treat very short non-skill queries as conversational
+    if precomputed_intent is None:
+        _short_conversational = len(payload.query.strip()) < 20 and not any(
+            c.isdigit() for c in payload.query
+        )
+        _greeting_words = {"hi", "hello", "hey", "thanks", "thank", "bye", "help", "what", "who are you"}
+        _first_word = payload.query.strip().lower().split()[0] if payload.query.strip() else ""
+        if _short_conversational and _first_word in _greeting_words:
+            is_staffing = False
+
+    if is_staffing:
+        recommendation_response = recommend_from_query(
+            query=payload.query,
+            strategy=payload.strategy,
+            department=(payload.filters.department if payload.filters else None),
+            evidence_snippets=rag_context.snippets,
+            planner=query_planner,
+            precomputed_intent=precomputed_intent,
+        )
+        recommendations = recommendation_response.recommendations
     else:
-        answer = f"For '{payload.query}', top candidates are: {top_names}. Retrieval mode: {rag_context.mode}."
+        recommendations = []
+
+    top_k = len(recommendations)
+
+    # Build rich candidate summaries for LLM answer generation
+    candidate_summaries: list[str] = []
+    for rec in recommendations[:5]:
+        emp = rec.employee
+        skills_str = ", ".join(
+            f"{s.skill.name} (lvl {s.proficiency})" for s in emp.skills[:6]
+        ) if emp.skills else "no skills listed"
+        summary = (
+            f"{emp.name} — {emp.department}, utilization {emp.utilizationPct}%, "
+            f"availability: {emp.availability}, skills: {skills_str}, "
+            f"match score: {rec.score:.2f}"
+        )
+        candidate_summaries.append(summary)
+
+    # Collect evidence
     evidence: list[str] = []
     seen_snippets: set[str] = set()
-    for snippet in [*rag_context.snippets, *(snippet for rec in recommendations for snippet in rec.evidenceSnippets)]:
+    for snippet in [*rag_context.snippets, *(s for rec in recommendations for s in rec.evidenceSnippets)]:
         if snippet in seen_snippets:
             continue
         seen_snippets.add(snippet)
         evidence.append(snippet)
         if len(evidence) >= 5:
             break
+
+    # Try LLM-generated answer first, fall back to template
+    answer = query_planner.generate_answer(
+        query=payload.query,
+        candidate_summaries=candidate_summaries,
+        evidence_snippets=evidence,
+    )
+
+    if answer is None:
+        # Template fallback when no LLM is configured
+        top_names = ", ".join(rec.employee.name for rec in recommendations[:3]) if recommendations else ""
+        if not recommendations:
+            answer = (
+                f"No candidates found matching your query: '{payload.query}'. "
+                "The required skills or experience level may not be present in the current talent pool. "
+                "Try adjusting the skill names or year requirements."
+            )
+        elif top_k == 1:
+            answer = f"The best match for your query is {top_names}."
+        else:
+            answer = f"Here are the top candidates for your query: {top_names}."
+
     _ = current_user
     return ChatQueryResponse(
         answer=answer,

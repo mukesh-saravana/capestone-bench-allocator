@@ -1,6 +1,51 @@
 candidate_id,name,email,role,department,experience_years,skills,availability,utilization_pct,interview_score,interview_result
-cand-201,Arun Kumar,arun.kumar@company.com,Senior Engineer,Backend,7,Python|FastAPI|PostgreSQL,available,0,88,selected
-cand-202,Meera Iyer,meera.iyer@company.com,Engineer,Frontend,4,React|TypeScript|MUI,available,10,82,selected
-cand-203,Rahul Menon,rahul.menon@company.com,DevOps Engineer,Platform,6,Docker|Kubernetes|AWS,available,20,79,on_hold
-cand-204,Divya Sharma,divya.sharma@company.com,QA Engineer,Platform,5,Selenium|Cypress|Playwright,available,0,85,selected
-cand-205,Neha Gupta,neha.gupta@company.com,Data Engineer,Data,3,Python|Spark|PostgreSQL,allocated,75,74,rejected
+cand-201,Aarav Kumar,aarav.kumar@company.com,Senior Backend Engineer,Backend,7,Python|TypeScript|Kotlin|FastAPI|React|Docker|PostgreSQL|AWS,available,0,88,selected
+cand-202,Maya Sharma,maya.sharma@company.com,Frontend Engineer,Frontend,5,Java|TypeScript|Swift|Next.js|Spring Boot|MySQL|Azure|Kubernetes,available,10,84,selected
+cand-203,Rohan Iyer,rohan.iyer@company.com,DevOps Engineer,Platform,6,Go|TypeScript|Kotlin|gRPC|Terraform|Redis|React|GCP,available,20,82,on_hold
+cand-204,Lina Patel,lina.patel@company.com,Data Engineer,Data,4,C#|TypeScript|Swift|.NET|Angular|SQL Server|Docker|Azure,available,15,81,selected
+cand-205,Kiran Singh,kiran.singh@company.com,Mobile Engineer,Mobile,5,PHP|TypeScript|Kotlin|Laravel|Vue.js|MySQL|Docker|AWS,available,0,80,on_hold
+cand-206,Nora Nair,nora.nair@company.com,Cloud Engineer,Cloud,6,Rust|TypeScript|Swift|Actix|React|PostgreSQL|Kubernetes|GCP,available,25,86,selected
+cand-207,Arjun Mehta,arjun.mehta@company.com,Security Engineer,Security,8,Scala|TypeScript|Kotlin|Spark|Kafka|PostgreSQL|AWS|Docker,available,10,89,selected
+cand-208,Sara Rao,sara.rao@company.com,QA Automation Engineer,QA,4,Python|TypeScript|Swift|Django|React Native|Redis|MongoDB|Playwright,available,5,79,on_hold
+cand-209,Dev Gupta,dev.gupta@company.com,Senior Backend Engineer,Backend,9,Python|TypeScript|Kotlin|FastAPI|React|Docker|PostgreSQL|AWS,allocated,80,90,selected
+cand-210,Ivy Menon,ivy.menon@company.com,Frontend Engineer,Frontend,3,Java|TypeScript|Swift|Next.js|Spring Boot|MySQL|Azure|Kubernetes,available,0,77,rejected
+cand-211,Rahul Das,rahul.das@company.com,DevOps Engineer,Platform,7,Go|TypeScript|Kotlin|gRPC|Terraform|Redis|React|GCP,available,12,85,selected
+cand-212,Zoe Joshi,zoe.joshi@company.com,Data Engineer,Data,5,C#|TypeScript|Swift|.NET|Angular|SQL Server|Docker|Azure,available,18,83,on_hold
+cand-213,Neel Khan,neel.khan@company.com,Mobile Engineer,Mobile,6,PHP|TypeScript|Kotlin|Laravel|Vue.js|MySQL|Docker|AWS,available,0,82,selected
+cand-214,Aisha Sethi,aisha.sethi@company.com,Cloud Engineer,Cloud,7,Rust|TypeScript|Swift|Actix|React|PostgreSQL|Kubernetes|GCP,available,20,87,selected
+cand-215,Kabir Bose,kabir.bose@company.com,Security Engineer,Security,5,Scala|TypeScript|Kotlin|Spark|Kafka|PostgreSQL|AWS|Docker,available,10,84,on_hold
+cand-216,Mina Roy,mina.roy@company.com,QA Automation Engineer,QA,4,Python|TypeScript|Swift|Django|React Native|Redis|MongoDB|Playwright,available,0,80,selected
+cand-217,Ravi Verma,ravi.verma@company.com,Senior Backend Engineer,Backend,8,Python|TypeScript|Kotlin|FastAPI|React|Docker|PostgreSQL|AWS,available,14,88,selected
+cand-218,Tara Paul,tara.paul@company.com,Frontend Engineer,Frontend,4,Java|TypeScript|Swift|Next.js|Spring Boot|MySQL|Azure|Kubernetes,available,8,81,on_hold
+cand-219,Yash Malik,yash.malik@company.com,DevOps Engineer,Platform,6,Go|TypeScript|Kotlin|gRPC|Terraform|Redis|React|GCP,available,22,83,selected
+cand-220,Leah Pillai,leah.pillai@company.com,Data Engineer,Data,5,C#|TypeScript|Swift|.NET|Angular|SQL Server|Docker|Azure,available,16,82,selected
+cand-221,Ananya Kapoor,ananya.kapoor@company.com,Mobile Engineer,Mobile,3,PHP|TypeScript|Kotlin|Laravel|Vue.js|MySQL|Docker|AWS,available,0,76,rejected
+cand-222,Bhavesh Reddy,bhavesh.reddy@company.com,Cloud Engineer,Cloud,7,Rust|TypeScript|Swift|Actix|React|PostgreSQL|Kubernetes|GCP,available,28,86,selected
+cand-223,Chitra Narang,chitra.narang@company.com,Security Engineer,Security,6,Scala|TypeScript|Kotlin|Spark|Kafka|PostgreSQL|AWS|Docker,available,12,85,on_hold
+cand-224,Darshan Naidu,darshan.naidu@company.com,QA Automation Engineer,QA,4,Python|TypeScript|Swift|Django|React Native|Redis|MongoDB|Playwright,available,6,79,selected
+cand-225,Ekta Bhatia,ekta.bhatia@company.com,Senior Backend Engineer,Backend,10,Python|TypeScript|Kotlin|FastAPI|React|Docker|PostgreSQL|AWS,allocated,92,91,selected
+cand-226,Farhan Ali,farhan.ali@company.com,Frontend Engineer,Frontend,5,Java|TypeScript|Swift|Next.js|Spring Boot|MySQL|Azure|Kubernetes,available,15,84,selected
+cand-227,Gauri Jain,gauri.jain@company.com,DevOps Engineer,Platform,7,Go|TypeScript|Kotlin|gRPC|Terraform|Redis|React|GCP,available,18,85,on_hold
+cand-228,Harish Balan,harish.balan@company.com,Data Engineer,Data,6,C#|TypeScript|Swift|.NET|Angular|SQL Server|Docker|Azure,available,10,83,selected
+cand-229,Ira Chawla,ira.chawla@company.com,Mobile Engineer,Mobile,4,PHP|TypeScript|Kotlin|Laravel|Vue.js|MySQL|Docker|AWS,available,0,81,selected
+cand-230,Jayant Puri,jayant.puri@company.com,Cloud Engineer,Cloud,8,Rust|TypeScript|Swift|Actix|React|PostgreSQL|Kubernetes|GCP,available,20,88,selected
+cand-231,Kavya Arora,kavya.arora@company.com,Security Engineer,Security,6,Scala|TypeScript|Kotlin|Spark|Kafka|PostgreSQL|AWS|Docker,available,11,84,on_hold
+cand-232,Lokesh Sinha,lokesh.sinha@company.com,QA Automation Engineer,QA,5,Python|TypeScript|Swift|Django|React Native|Redis|MongoDB|Playwright,available,9,82,selected
+cand-233,Manvi Tiwari,manvi.tiwari@company.com,Senior Backend Engineer,Backend,7,Python|TypeScript|Kotlin|FastAPI|React|Docker|PostgreSQL|AWS,available,13,87,selected
+cand-234,Nakul Bhatt,nakul.bhatt@company.com,Frontend Engineer,Frontend,4,Java|TypeScript|Swift|Next.js|Spring Boot|MySQL|Azure|Kubernetes,available,7,80,on_hold
+cand-235,Ojasvi Goyal,ojasvi.goyal@company.com,DevOps Engineer,Platform,8,Go|TypeScript|Kotlin|gRPC|Terraform|Redis|React|GCP,allocated,75,86,selected
+cand-236,Priyal Deshmukh,priyal.deshmukh@company.com,Data Engineer,Data,5,C#|TypeScript|Swift|.NET|Angular|SQL Server|Docker|Azure,available,14,82,selected
+cand-237,Qamar Siddiqui,qamar.siddiqui@company.com,Mobile Engineer,Mobile,6,PHP|TypeScript|Kotlin|Laravel|Vue.js|MySQL|Docker|AWS,available,0,83,on_hold
+cand-238,Riya Banerjee,riya.banerjee@company.com,Cloud Engineer,Cloud,7,Rust|TypeScript|Swift|Actix|React|PostgreSQL|Kubernetes|GCP,available,21,87,selected
+cand-239,Sameer Kulkarni,sameer.kulkarni@company.com,Security Engineer,Security,9,Scala|TypeScript|Kotlin|Spark|Kafka|PostgreSQL|AWS|Docker,available,16,90,selected
+cand-240,Trisha Dutta,trisha.dutta@company.com,QA Automation Engineer,QA,3,Python|TypeScript|Swift|Django|React Native|Redis|MongoDB|Playwright,on_leave,0,75,rejected
+cand-241,Uday Chandra,uday.chandra@company.com,Senior Backend Engineer,Backend,8,Python|TypeScript|Kotlin|FastAPI|React|Docker|PostgreSQL|AWS,available,19,88,selected
+cand-242,Vaishnavi Rao,vaishnavi.rao@company.com,Frontend Engineer,Frontend,5,Java|TypeScript|Swift|Next.js|Spring Boot|MySQL|Azure|Kubernetes,available,10,83,selected
+cand-243,Wasim Akhtar,wasim.akhtar@company.com,DevOps Engineer,Platform,6,Go|TypeScript|Kotlin|gRPC|Terraform|Redis|React|GCP,available,17,84,on_hold
+cand-244,Xenia Fernandes,xenia.fernandes@company.com,Data Engineer,Data,4,C#|TypeScript|Swift|.NET|Angular|SQL Server|Docker|Azure,available,8,81,selected
+cand-245,Yamini Rastogi,yamini.rastogi@company.com,Mobile Engineer,Mobile,5,PHP|TypeScript|Kotlin|Laravel|Vue.js|MySQL|Docker|AWS,available,0,82,selected
+cand-246,Zubin Mistry,zubin.mistry@company.com,Cloud Engineer,Cloud,7,Rust|TypeScript|Swift|Actix|React|PostgreSQL|Kubernetes|GCP,available,23,86,selected
+cand-247,Aditya Bedi,aditya.bedi@company.com,Security Engineer,Security,6,Scala|TypeScript|Kotlin|Spark|Kafka|PostgreSQL|AWS|Docker,available,12,84,on_hold
+cand-248,Bhavna Oberoi,bhavna.oberoi@company.com,QA Automation Engineer,QA,5,Python|TypeScript|Swift|Django|React Native|Redis|MongoDB|Playwright,available,11,82,selected
+cand-249,Chetan Narula,chetan.narula@company.com,Senior Backend Engineer,Backend,9,Python|TypeScript|Kotlin|FastAPI|React|Docker|PostgreSQL|AWS,allocated,85,90,selected
+cand-250,Diya Mahajan,diya.mahajan@company.com,Frontend Engineer,Frontend,4,Java|TypeScript|Swift|Next.js|Spring Boot|MySQL|Azure|Kubernetes,available,9,80,on_hold

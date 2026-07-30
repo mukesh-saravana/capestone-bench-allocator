@@ -1,4 +1,4 @@
 employee_id,name,email,role,department,experience_years,skills,availability,utilization_pct,bench_since
-emp-101,Ananya Rao,ananya.rao@company.com,Senior Engineer,Backend,7,Python|FastAPI|PostgreSQL,available,10,2026-07-01
+emp-101,Ananya Rao,ananya.rao@company.com,Senior Engineer,Backend,7,Python|FastAPI|PostgreSQL,available,10,7/1/2026
 emp-102,Vikram Iyer,vikram.iyer@company.com,Engineer,Frontend,4,React|TypeScript|MUI,allocated,75,
-emp-103,Priya Nair,priya.nair@company.com,DevOps Engineer,Platform,6,AWS|Docker|Kubernetes,available,20,2026-07-12
+emp-103,Priya Nair,priya.nair@company.com,DevOps Engineer,Platform,6,AWS|Docker|Kubernetes,available,20,7/12/2026
