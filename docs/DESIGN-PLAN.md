@@ -317,10 +317,10 @@ This document outlines the complete UI/UX design plan for the Capstone Bench All
 
 4. **Tooltip/Hover** (On card or score)
    - Show scoring breakdown:
-     - Skill match: 6.0/10
-     - Project experience: 2.2/10
-     - Availability: 1.0/10
-     - Total: 9.2/10
+   - Skill match: 5.1/10
+   - Project experience: 1.8/10
+   - Availability: 2.0/10
+   - Total: 8.9/10
 
 ---
 

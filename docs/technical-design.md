@@ -178,7 +178,7 @@ CREATE TABLE recommendation_results (
     employee_id     UUID REFERENCES employees(id),
     rank            INT NOT NULL,
     score           NUMERIC(4,2) NOT NULL,
-    score_breakdown JSONB,                 -- e.g. {"skill_match": 6.0, "experience": 2.2, "availability": 1.0}
+    score_breakdown JSONB,                 -- e.g. {"skill_match": 5.1, "experience": 1.8, "availability": 2.0}
     reasons         TEXT[] NOT NULL,
     evidence_snippets TEXT[],
     created_at      TIMESTAMPTZ DEFAULT now()
@@ -188,7 +188,8 @@ CREATE TABLE recommendation_results (
 **Key design notes:**
 - `employee_skills` uses a proficiency 1–5 scale matching the UI star rating
 - `project_needs.required_skills` is a denormalized array for fast skill-matching queries; the normalized join via `employee_skills` is used for scoring
-- `recommendation_results.score_breakdown` stores the weighted sub-scores as JSONB so the explainability layer can surface them without recomputing
+- `recommendation_results.score_breakdown` stores weighted per-factor contributions (0-10 scale total) as JSONB so the explainability layer can surface them without recomputing
+- scoring normalizes raw component ranges before applying strategy weights; this keeps final scores consistent on a 0-10 scale across strategies
 - All allocation writes go through `allocation_history` — the `employees.availability` column is updated by a trigger or application service after each allocation event
 
 ## 6. RAG Pipeline Design
